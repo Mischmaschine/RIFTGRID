@@ -1,0 +1,9 @@
+{
+  "name": "@riftgrid/tasks",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run --passWithNoTests", "lint": "tsc -p tsconfig.json --noEmit" },
+  "dependencies": { "@riftgrid/shared": "workspace:*", "bullmq": "^5.47.2", "ioredis": "^5.6.0" },
+  "devDependencies": { "typescript": "^5.8.3", "vitest": "^3.1.1" }
+}

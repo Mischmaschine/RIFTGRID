@@ -1,0 +1,14 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: riftgrid-dev
+servers: 1
+agents: 2
+ports:
+  - port: 30000-30100:30000-30100
+    nodeFilters: ["agent:*"]
+options:
+  k3s:
+    extraArgs:
+      - arg: --kube-apiserver-arg=service-node-port-range=30000-32767
+        nodeFilters: ["server:*"]

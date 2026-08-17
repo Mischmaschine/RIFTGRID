@@ -1,0 +1,21 @@
+{
+  "name": "riftgrid",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "db:generate": "pnpm --filter @riftgrid/database generate",
+    "db:migrate": "pnpm --filter @riftgrid/database migrate",
+    "cluster:dev": "powershell -ExecutionPolicy Bypass -File infrastructure/kubernetes/create-dev-cluster.ps1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}

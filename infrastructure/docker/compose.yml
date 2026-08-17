@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: riftgrid
+      POSTGRES_PASSWORD: riftgrid
+      POSTGRES_DB: riftgrid
+    ports: ["5432:5432"]
+    volumes: ["riftgrid-postgres:/var/lib/postgresql/data"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U riftgrid"], interval: 5s, timeout: 3s, retries: 20 }
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["6379:6379"]
+    volumes: ["riftgrid-redis:/data"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 3s, retries: 20 }
+  api:
+    profiles: ["control-plane"]
+    build: { context: ../.., dockerfile: infrastructure/docker/Dockerfile, args: { APP: api } }
+    environment:
+      DATABASE_URL: postgresql://riftgrid:riftgrid@postgres:5432/riftgrid
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET:-development-only-change-this-secret}
+      WEB_ORIGIN: http://localhost:3000
+      API_PORT: 4000
+    ports: ["4000:4000"]
+    depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_healthy } }
+    volumes: ["${USERPROFILE}/.kube:/root/.kube:ro"]
+  worker:
+    profiles: ["control-plane"]
+    build: { context: ../.., dockerfile: infrastructure/docker/Dockerfile, args: { APP: worker } }
+    environment:
+      DATABASE_URL: postgresql://riftgrid:riftgrid@postgres:5432/riftgrid
+      REDIS_URL: redis://redis:6379
+      KUBERNETES_NAMESPACE: riftgrid-servers
+    depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_healthy } }
+    volumes: ["${USERPROFILE}/.kube:/root/.kube:ro"]
+  web:
+    profiles: ["control-plane"]
+    build: { context: ../.., dockerfile: infrastructure/docker/Dockerfile, args: { APP: web } }
+    environment: { NEXT_PUBLIC_API_URL: http://localhost:4000 }
+    ports: ["3000:3000"]
+    depends_on: [api]
+volumes:
+  riftgrid-postgres:
+  riftgrid-redis:

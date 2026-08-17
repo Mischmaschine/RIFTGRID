@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+storeDir: .pnpm-store
+enableGlobalVirtualStore: false
+verifyDepsBeforeRun: error
+allowBuilds:
+  esbuild: true
+  msgpackr-extract: true
+  sharp: true
+  unrs-resolver: true

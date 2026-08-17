@@ -1,0 +1,30 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "DATABASE_POOL_SIZE",
+    "REDIS_URL",
+    "API_PORT",
+    "WEB_ORIGIN",
+    "NEXT_PUBLIC_API_URL",
+    "SESSION_SECRET",
+    "KUBERNETES_NAMESPACE",
+    "KUBERNETES_CONFIG",
+    "MINECRAFT_SERVICE_TYPE",
+    "GAME_PUBLIC_HOST",
+    "PORT_RANGE_START",
+    "PORT_RANGE_END",
+    "WORKLOAD_READY_TIMEOUT_MS",
+    "RECONCILE_INTERVAL_MS",
+    "WORKER_CONCURRENCY",
+    "LOG_LEVEL"
+  ],
+  "tasks": {
+    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
+    "dev": { "cache": false, "persistent": true },
+    "typecheck": { "dependsOn": ["^typecheck"], "outputs": [] },
+    "test": { "dependsOn": ["^build"], "outputs": ["coverage/**"] },
+    "lint": { "dependsOn": ["^lint"], "outputs": [] }
+  }
+}

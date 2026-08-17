@@ -1,0 +1,16 @@
+images:
+  api: ghcr.io/riftgrid/api:0.1.0
+  worker: ghcr.io/riftgrid/worker:0.1.0
+  web: ghcr.io/riftgrid/web:0.1.0
+databaseUrl: ""
+redisUrl: ""
+sessionSecret: ""
+webOrigin: https://riftgrid.example.com
+publicApiUrl: https://api.riftgrid.example.com
+gameNamespace: riftgrid-servers
+storageClassName: ""
+replicas: { api: 2, worker: 2, web: 2 }
+resources:
+  api: { requests: { cpu: 100m, memory: 192Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+  worker: { requests: { cpu: 150m, memory: 256Mi }, limits: { cpu: 2000m, memory: 1Gi } }
+  web: { requests: { cpu: 100m, memory: 192Mi }, limits: { cpu: 1000m, memory: 512Mi } }
