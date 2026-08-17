@@ -43,6 +43,17 @@ function workloadLabels(serverId: string, name: string) { return { "app.kubernet
 
 function conditionReady(node: V1Node): boolean { return node.status?.conditions?.some((condition) => condition.type === "Ready" && condition.status === "True") ?? false; }
 
+function timestampMillis(value: unknown): number {
+  if (!value) return 0;
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function timestampIso(value: unknown): string | null {
+  const millis = timestampMillis(value);
+  return millis ? new Date(millis).toISOString() : null;
+}
+
 export class KubernetesService implements KubernetesGateway {
   private readonly config = new KubeConfig();
   private readonly core: CoreV1Api;
@@ -75,7 +86,7 @@ export class KubernetesService implements KubernetesGateway {
       }
       const allocatable = node.status?.allocatable ?? node.status?.capacity ?? {};
       const taints = (node.spec?.taints ?? []).filter((taint) => taint.effect === "NoSchedule" || taint.effect === "NoExecute").map((taint) => `${taint.key}${taint.value ? `=${taint.value}` : ""}:${taint.effect}`);
-      const events = eventResponse.body.items.filter((event) => event.involvedObject.kind === "Node" && event.involvedObject.name === name).sort((left, right) => new Date(right.lastTimestamp ?? right.eventTime ?? 0).getTime() - new Date(left.lastTimestamp ?? left.eventTime ?? 0).getTime()).slice(0, 8).map((event) => ({ type: event.type ?? "Normal", reason: event.reason ?? "Event", message: event.message ?? "", timestamp: (event.lastTimestamp ?? event.eventTime)?.toISOString() ?? null }));
+      const events = eventResponse.body.items.filter((event) => event.involvedObject.kind === "Node" && event.involvedObject.name === name).sort((left, right) => timestampMillis(right.lastTimestamp ?? right.eventTime) - timestampMillis(left.lastTimestamp ?? left.eventTime)).slice(0, 8).map((event) => ({ type: event.type ?? "Normal", reason: event.reason ?? "Event", message: event.message ?? "", timestamp: timestampIso(event.lastTimestamp ?? event.eventTime) }));
       const internalIp = node.status?.addresses?.find((address) => address.type === "InternalIP")?.address;
       const kubernetesVersion = node.status?.nodeInfo?.kubeletVersion;
       return {
