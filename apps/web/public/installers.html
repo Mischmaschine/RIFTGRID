@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050608">
+<title>RIFTGRID — Installers</title>
+<meta name="description" content="Browse the RIFTGRID installer model: official installers, custom Docker deployments, SteamCMD runtime architecture and game adapters.">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="">
+
+<div class="top-progress" id="topProgress"></div>
+<div class="noise"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="nav-wrap">
+<header class="nav shell">
+  <a class="brand" href="index.html" aria-label="RIFTGRID Home">
+    <span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span>
+  </a>
+  <nav>
+    <a href="platform.html">Platform</a>
+    <a href="installers.html">Installers</a>
+    <a href="fivem.html">FiveM</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="pricing.html">Pricing</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="pill" href="installers.html">Browse installers</a>
+    <a class="pill primary" href="index.html#access">Request access ↗</a>
+  </div>
+</header>
+</div>
+
+
+<main>
+<section class="page-hero shell">
+  <div class="eyebrow">INSTALLER REGISTRY / UNIVERSAL DEPLOYMENT</div>
+  <h1>One-click when possible.<br><em>Anything when needed.</em></h1>
+  <p>An installer gets software to RUNNING. A game adapter can add deeper management after that. The registry is a shortcut — never a technical limit.</p>
+  <div class="hero-actions"><a class="btn primary" href="#catalog">Browse registry →</a><a class="btn" href="#custom">Deploy any server</a></div>
+
+  <div class="hero-frame installer-hero-frame">
+    <div class="grid-bg"></div>
+    <div class="registry-window">
+      <div class="registry-top"><span>RIFTGRID INSTALLER REGISTRY</span><span>4 SOURCES / VERSIONED</span></div>
+      <div class="registry-search">⌕ Search installers, runtimes, games...</div>
+      <div class="registry-preview">
+        <div><span class="trust official">OFFICIAL</span><b>Minecraft</b><small>Paper · Vanilla</small></div>
+        <div><span class="trust official">OFFICIAL</span><b>FiveM</b><small>FXServer · txAdmin</small></div>
+        <div><span class="trust local">LOCAL</span><b>Custom Docker</b><small>Any OCI image</small></div>
+        <div><span class="trust verified">VERIFIED</span><b>SteamCMD runtime</b><small>App ID driven</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section shell" id="catalog">
+  <div class="section-head">
+    <div><p class="section-kicker">01 / CATALOG</p><h2>Installers are packages.<br><span>Not hardcoded pages.</span></h2></div>
+    <p class="section-copy">Version, publisher, runtime, trust and capabilities travel with the installer definition so the UI can stay generic.</p>
+  </div>
+
+  <div class="catalog-toolbar">
+    <div class="catalog-tabs"><span class="active">Featured</span><span>Official</span><span>Verified</span><span>Community</span><span>Local</span></div>
+    <div class="catalog-note">Target registry model · private alpha</div>
+  </div>
+
+  <div class="catalog-grid">
+    <article class="catalog-card card">
+      <div class="catalog-icon minecraft-i">M</div><span class="trust official">RIFTGRID OFFICIAL</span>
+      <h3>Minecraft</h3><p>Paper and Vanilla reference installer with persistent storage and a deep game adapter.</p>
+      <div class="catalog-meta"><span>runtime / java</span><span>adapter / active</span><span>v1</span></div>
+      <a href="minecraft.html">Explore integration ↗</a>
+    </article>
+    <article class="catalog-card card">
+      <div class="catalog-icon fivem-i">F</div><span class="trust official">RIFTGRID OFFICIAL</span>
+      <h3>FiveM</h3><p>Artifact-aware FXServer installer with secret-backed license handling and txAdmin-aware adapter design.</p>
+      <div class="catalog-meta"><span>runtime / artifact</span><span>adapter / preview</span><span>v1</span></div>
+      <a href="fivem.html">Try interactive demo ↗</a>
+    </article>
+    <article class="catalog-card card">
+      <div class="catalog-icon docker-i">⌁</div><span class="trust local">UNIVERSAL</span>
+      <h3>Custom Docker</h3><p>Bring any OCI image. Configure command, ports, storage, environment, secrets and health.</p>
+      <div class="catalog-meta"><span>runtime / docker</span><span>adapter / optional</span><span>custom</span></div>
+      <a href="#custom">See custom deployment ↓</a>
+    </article>
+    <article class="catalog-card card muted-catalog">
+      <div class="catalog-icon steam-i">S</div><span class="trust verified">RUNTIME</span>
+      <h3>SteamCMD</h3><p>App-ID-driven installer runtime for the huge ecosystem of dedicated servers distributed through Steam.</p>
+      <div class="catalog-meta"><span>runtime / steamcmd</span><span>registry-ready</span><span>planned</span></div>
+      <span class="catalog-disabled">Runtime expansion</span>
+    </article>
+    <article class="catalog-card card muted-catalog">
+      <div class="catalog-icon future-i">R</div><span class="trust verified">PLANNED</span>
+      <h3>Rust</h3><p>Perfect example of installer-first: get the dedicated server running, then enrich it through RCON-aware capabilities.</p>
+      <div class="catalog-meta"><span>steamcmd</span><span>game adapter later</span></div>
+      <span class="catalog-disabled">Planned</span>
+    </article>
+    <article class="catalog-card card muted-catalog">
+      <div class="catalog-icon future-i">+</div><span class="trust community">COMMUNITY</span>
+      <h3>Your installer</h3><p>A future registry can distribute versioned community packages without requiring a RIFTGRID core release.</p>
+      <div class="catalog-meta"><span>signed metadata</span><span>trust visible</span></div>
+      <span class="catalog-disabled">Registry architecture</span>
+    </article>
+  </div>
+</section>
+
+<section class="section shell" id="custom">
+  <div class="section-head">
+    <div><p class="section-kicker">02 / CUSTOM DEPLOYMENT</p><h2>No installer?<br><span>No problem.</span></h2></div>
+    <p class="section-copy">The universal path proves the point: catalog support is convenience, not permission.</p>
+  </div>
+  <div class="custom-deploy-demo card">
+    <div class="custom-form">
+      <span class="mini-tag">DEPLOY ANY SERVER</span>
+      <label>Name <b>custom-web-01</b></label>
+      <label>Docker image <b>nginx:alpine</b></label>
+      <label>CPU / RAM <b>1 core · 512 MiB</b></label>
+      <label>Port <b>80 / TCP</b></label>
+      <label>Storage <b>5 GiB / persistent</b></label>
+      <label>Health <b>HTTP GET / → 200</b></label>
+      <button type="button" class="btn primary custom-demo-button" id="customDemoButton">Simulate deploy →</button>
+    </div>
+    <div class="custom-progress" id="customDemoProgress">
+      <div class="cp-step active"><i></i><span>VALIDATING</span><b>ready</b></div>
+      <div class="cp-step"><i></i><span>SCHEDULING</span><b>waiting</b></div>
+      <div class="cp-step"><i></i><span>STORAGE</span><b>waiting</b></div>
+      <div class="cp-step"><i></i><span>NETWORK</span><b>waiting</b></div>
+      <div class="cp-step"><i></i><span>STARTING</span><b>waiting</b></div>
+      <div class="cp-step"><i></i><span>HEALTH</span><b>waiting</b></div>
+      <div class="cp-step"><i></i><span>RUNNING</span><b>waiting</b></div>
+      <small>Interactive public simulation — no real workload is created from this website.</small>
+    </div>
+  </div>
+</section>
+
+<section class="section shell">
+  <p class="section-kicker">03 / THE RULE</p>
+  <h2 class="big-quote">Day one: <span>installer.</span><br>Day two: <em>deep adapter.</em></h2>
+</section>
+</main>
+
+
+<footer class="site-footer">
+  <div class="shell footer-v6">
+    <div class="footer-brand">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span></div>
+      <p>The operating system for game servers.<br>Run anything. One-click when RIFTGRID understands it.</p>
+    </div>
+    <div class="footer-links">
+      <div><small>PRODUCT</small><a href="platform.html">Platform</a><a href="installers.html">Installers</a><a href="pricing.html">Pricing</a></div>
+      <div><small>DEEP DIVES</small><a href="minecraft.html">Minecraft</a><a href="fivem.html">FiveM</a><a href="architecture.html">Architecture</a></div>
+      <div><small>LEGAL</small><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="agb.html">AGB / Lizenz</a></div>
+    </div>
+  </div>
+  <div class="shell footer-bottom">
+    <span>© 2026 RIFTGRID</span>
+    <span>Self-hosted control plane · Infrastructure not included</span>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

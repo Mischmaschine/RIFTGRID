@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050608">
+<title>RIFTGRID — Platform</title>
+<meta name="description" content="RIFTGRID — The operating system for game servers.">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="">
+
+
+<div class="top-progress" id="topProgress"></div>
+<div class="noise"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="nav-wrap">
+<header class="nav shell">
+  <a class="brand" href="index.html" aria-label="RIFTGRID Home">
+    <span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span>
+  </a>
+  <nav>
+    <a href="platform.html">Platform</a>
+    <a href="installers.html">Installers</a>
+    <a href="fivem.html">FiveM</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="pricing.html">Pricing</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="pill" href="installers.html">Browse installers</a>
+    <a class="pill primary" href="index.html#access">Request access ↗</a>
+  </div>
+</header>
+</div>
+
+<main>
+<section class="page-hero shell">
+  <div class="eyebrow">THE PLATFORM / CONTROL PLANE</div>
+  <h1>Operate worlds.<br><em>Not boxes.</em></h1>
+  <p>RIFTGRID turns game server management into a desired-state workflow: declare what should run, let the grid place it, and keep control over every operation from one product.</p>
+  <div class="subnav"><a href="#control">Control plane</a><a href="#tasks">Task engine</a><a href="#storage">Storage</a><a href="#network">Network</a><a href="#security">Security</a></div>
+  <div class="hero-frame">
+    <div class="grid-bg"></div>
+    <div class="diagram">
+      <div class="diagram-node core"><small>RIFTGRID CORE</small><strong>Desired State</strong></div>
+      <div class="diagram-node a"><small>INPUT</small><strong>Dashboard + API</strong></div>
+      <div class="diagram-node b"><small>ORCHESTRATION</small><strong>Kubernetes</strong></div>
+      <div class="diagram-node c"><small>STATE</small><strong>Postgres + Redis</strong></div>
+      <div class="diagram-node d"><small>WORKLOAD</small><strong>Game Adapters</strong></div>
+      <svg viewBox="0 0 1200 560" preserveAspectRatio="none">
+        <path d="M220,130 C390,130 470,190 600,235"/><path d="M985,145 C820,150 750,190 600,235"/><path d="M220,455 C390,410 460,330 600,235"/><path d="M990,455 C810,410 730,330 600,235"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="section shell" id="control">
+  <div class="section-head"><div><p class="section-kicker">01 / CONTROL PLANE</p><h2>One state model.<br><span>Every action traceable.</span></h2></div><p class="section-copy">Start, stop, move, backup, restore and reinstall are not random commands. They are controlled transitions in a server state machine.</p></div>
+  <div class="stack-cards">
+    <article class="stack-card"><span class="mini-tag">DESIRED STATE</span><h3>RUNNING is a promise.</h3><p>The user requests a target state. RIFTGRID reconciles actual state until the server reaches it — or records exactly why it cannot.</p></article>
+    <article class="stack-card"><span class="mini-tag">STATE MACHINE</span><h3>No impossible transitions.</h3><p>STOPPED → STARTING → RUNNING. RUNNING → BACKING_UP → RUNNING. Invalid transitions are blocked before they cause undefined behavior.</p></article>
+    <article class="stack-card"><span class="mini-tag">EVENTS</span><h3>Everything leaves a trail.</h3><p>Who restarted what, which node was selected, when a backup finished, why capacity failed — all captured as structured activity.</p></article>
+    <article class="stack-card"><span class="mini-tag">ERROR MODEL</span><h3>Errors people can act on.</h3><p>NO_CLUSTER_CAPACITY is a product state. “Internal server error” is not.</p></article>
+  </div>
+</section>
+
+<section class="section shell" id="tasks">
+  <div class="section-head"><div><p class="section-kicker">02 / TASK ENGINE</p><h2>Long operations<br><span>without frozen interfaces.</span></h2></div><p class="section-copy">Every heavyweight operation becomes a background task with progress, status, timestamps and failure context.</p></div>
+  <div class="card table reveal-on-scroll">
+    <div class="row head"><span>TASK</span><span>RESOURCE</span><span>STATUS</span><span>PROGRESS</span><span>AGE</span></div>
+    <div class="row"><span>CREATE_SERVER</span><span>survival-01</span><span><i class="dot"></i> RUNNING</span><span>82%</span><span>18s</span></div>
+    <div class="row"><span>BACKUP_SERVER</span><span>roleplay-01</span><span><i class="dot"></i> SUCCESS</span><span>100%</span><span>4m</span></div>
+    <div class="row"><span>MIGRATE_SERVER</span><span>lobby-03</span><span><i class="dot warn"></i> QUEUED</span><span>0%</span><span>3s</span></div>
+  </div>
+</section>
+
+<section class="section shell" id="storage">
+  <div class="section-head"><div><p class="section-kicker">03 / STORAGE</p><h2>Stateful by design.<br><span>Because worlds matter.</span></h2></div><p class="section-copy">Game data is first-class infrastructure: worlds, resources, configs, logs and databases remain persistent while workloads move around them.</p></div>
+  <div class="split">
+    <div class="feature-card card reveal-on-scroll"><span class="mini-tag">PERSISTENT VOLUMES</span><h3>Pods can move. Data stays.</h3><p>RIFTGRID separates workloads from the data that defines the server.</p><div class="feature-art"><div class="grid-bg"></div><div style="position:absolute;inset:26px;display:flex;align-items:center;justify-content:space-between"><span class="mini-tag">NODE 01</span><b>→</b><span class="mini-tag" style="color:var(--acid)">PERSISTENT VOLUME</span><b>→</b><span class="mini-tag">NODE 04</span></div></div></div>
+    <div class="feature-card card reveal-on-scroll"><span class="mini-tag">BACKUP PROVIDERS</span><h3>Snapshot, archive, restore.</h3><p>The provider interface keeps storage flexible while backup semantics remain consistent.</p><div class="feature-art"><div style="position:absolute;inset:24px" class="timeline"><div class="timeline-item active"><small>03:00</small><h3 style="font-size:18px">Daily backup</h3></div><div class="timeline-item"><small>03:04</small><h3 style="font-size:18px">Retention 7</h3></div></div></div></div>
+  </div>
+</section>
+
+<section class="section shell" id="network">
+  <div class="section-head"><div><p class="section-kicker">04 / NETWORK</p><h2>Ports are inventory.<br><span>Not guesswork.</span></h2></div><p class="section-copy">TCP and UDP allocations are tracked centrally per server and node, so collisions stop being a manual problem.</p></div>
+  <div class="metric-grid">
+    <div class="metric card"><small>ALLOCATED PORTS</small><strong>117</strong><span>cluster-wide</span></div>
+    <div class="metric card"><small>TCP</small><strong>72</strong><span>active allocations</span></div>
+    <div class="metric card"><small>UDP</small><strong>45</strong><span>active allocations</span></div>
+    <div class="metric card"><small>COLLISIONS</small><strong>0</strong><span>by design</span></div>
+  </div>
+</section>
+
+<section class="section shell" id="security">
+  <div class="section-head"><div><p class="section-kicker">05 / SECURITY</p><h2>Run untrusted code.<br><span>Without trusting it.</span></h2></div><p class="section-copy">Isolation, secrets, Kubernetes RBAC, path boundaries and permission-aware APIs are part of the architecture, not a later hardening pass.</p></div>
+  <div class="link-grid">
+    <div class="link-card"><small>01</small><h3>Isolation</h3><p>No privileged containers by default. Enforced resource limits and bounded namespaces.</p></div>
+    <div class="link-card"><small>02</small><h3>Secrets</h3><p>Keys and database credentials never become normal frontend state.</p></div>
+    <div class="link-card"><small>03</small><h3>RBAC</h3><p>Granular capabilities from server.console to node.manage and backup.restore.</p></div>
+  </div>
+</section>
+
+<section class="cta shell"><div class="cta-box"><div class="grid-bg"></div><div style="position:relative;z-index:2"><p class="section-kicker">NEXT</p><h2>Now give the core a game brain.</h2><div class="hero-actions"><a class="btn primary" href="minecraft.html">Minecraft adapter →</a><a class="btn" href="fivem.html">FiveM adapter</a></div></div></div></section>
+</main>
+
+
+<footer class="site-footer">
+  <div class="shell footer-v6">
+    <div class="footer-brand">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span></div>
+      <p>The operating system for game servers.<br>Run anything. One-click when RIFTGRID understands it.</p>
+    </div>
+    <div class="footer-links">
+      <div><small>PRODUCT</small><a href="platform.html">Platform</a><a href="installers.html">Installers</a><a href="pricing.html">Pricing</a></div>
+      <div><small>DEEP DIVES</small><a href="minecraft.html">Minecraft</a><a href="fivem.html">FiveM</a><a href="architecture.html">Architecture</a></div>
+      <div><small>LEGAL</small><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="agb.html">AGB / Lizenz</a></div>
+    </div>
+  </div>
+  <div class="shell footer-bottom">
+    <span>© 2026 RIFTGRID</span>
+    <span>Self-hosted control plane · Infrastructure not included</span>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+* @Mischmaschine
+
+/packages/control-plane/ @Mischmaschine
+/packages/database/ @Mischmaschine
+/packages/kubernetes/ @Mischmaschine
+/infrastructure/ @Mischmaschine

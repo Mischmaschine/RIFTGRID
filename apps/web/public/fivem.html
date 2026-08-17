@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050608">
+<title>RIFTGRID — FiveM</title>
+<meta name="description" content="RIFTGRID — The operating system for game servers.">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="page-fivem">
+
+
+<div class="top-progress" id="topProgress"></div>
+<div class="noise"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="nav-wrap">
+<header class="nav shell">
+  <a class="brand" href="index.html" aria-label="RIFTGRID Home">
+    <span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span>
+  </a>
+  <nav>
+    <a href="platform.html">Platform</a>
+    <a href="installers.html">Installers</a>
+    <a href="fivem.html">FiveM</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="pricing.html">Pricing</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="pill" href="installers.html">Browse installers</a>
+    <a class="pill primary" href="index.html#access">Request access ↗</a>
+  </div>
+</header>
+</div>
+
+<main>
+<section class="page-hero shell">
+  <div class="eyebrow">GAME ADAPTER / 002 / FIVEM</div>
+  <h1>FiveM hosting,<br><em>rethought.</em></h1>
+  <p>FXServer, txAdmin, resources, server.cfg, players and databases become one game-native operating surface — while the core still remains completely generic.</p>
+  <div class="subnav"><a href="#try-console">Try console</a><a href="#runtime">Runtime</a><a href="#resources">Resources</a><a href="#txadmin">txAdmin</a><a href="#database">Database</a></div>
+  <div class="hero-frame">
+    <div class="grid-bg"></div>
+    <div class="mock-window">
+      <div class="mock-top"><i></i><i></i><i></i><span style="margin-left:12px;font-size:9px;color:#69727e">FIVEM / FXSERVER / roleplay-01</span></div>
+      <div class="mock-layout">
+        <div class="mock-side"><b>Overview</b><span>Console</span><span>Players</span><span>Resources</span><span>Server Config</span><span>Database</span><span>txAdmin</span><span>Backups</span></div>
+        <div class="mock-main">
+          <h4>roleplay-01 <span class="mini-tag" style="float:right;color:var(--acid)">93 / 128 ONLINE</span></h4>
+          <div class="mock-stat-grid"><div class="mock-stat"><small>RESOURCES</small><strong>184</strong></div><div class="mock-stat"><small>ARTIFACT</small><strong>Latest</strong></div><div class="mock-stat"><small>TXADMIN</small><strong>Connected</strong></div></div>
+          
+<div class="demo-console-wrap" style="margin-top:14px">
+  <div class="demo-console-head">
+    <div>
+      <span class="demo-live-dot"></span>
+      <strong>Interactive demo</strong>
+    </div>
+    <span>SAFE / SIMULATED</span>
+  </div>
+
+  <div class="demo-resource-state" id="demoResourceState">
+    <div>
+      <small>RESOURCE</small>
+      <strong>custom_hud</strong>
+    </div>
+    <div class="demo-state-pill running" id="demoStatePill">RUNNING</div>
+  </div>
+
+  <div class="demo-console" id="demoConsole" aria-live="polite">
+    <div class="demo-line"><span class="violet">[script:qbx_core]</span> server initialized</div>
+    <div class="demo-line"><span class="cyan">[script:ox_inventory]</span> items loaded: 714</div>
+    <div class="demo-line"><span class="green">[citizen-server-impl]</span> server ready for commands</div>
+    <div class="demo-line demo-hint">Try: <b>restart custom_hud</b>, <b>players</b>, <b>resources</b>, <b>status</b>, <b>help</b></div>
+  </div>
+
+  <div class="demo-command-area">
+    <div class="demo-command-row">
+      <span class="demo-prompt">›</span>
+      <input
+        id="demoCommandInput"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="Type a FiveM command..."
+        aria-label="Interactive FiveM demo command"
+      />
+      <button id="demoRunButton" type="button">RUN</button>
+    </div>
+
+    <div class="demo-suggestions" id="demoSuggestions" hidden></div>
+  </div>
+
+  <div class="demo-quick-commands">
+    <button type="button" data-demo-command="restart custom_hud">restart custom_hud</button>
+    <button type="button" data-demo-command="players">players</button>
+    <button type="button" data-demo-command="resources">resources</button>
+    <button type="button" data-demo-command="status">status</button>
+  </div>
+</div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="section shell demo-showcase-section" id="try-console">
+  <div class="section-head">
+    <div>
+      <p class="section-kicker">TRY IT / LIVE PRODUCT DEMO</p>
+      <h2>Don’t just read about it.<br><span>Use the console.</span></h2>
+    </div>
+    <p class="section-copy">This is a simulated public demo — no real server is being touched. But the interaction mirrors how RIFTGRID’s FiveM console should feel.</p>
+  </div>
+
+  <div class="demo-showcase-grid">
+    <div class="card demo-command-guide">
+      <span class="mini-tag">COMMANDS</span>
+      <h3>Type like you already own the server.</h3>
+      <p>Use the same mental model you know from FXServer — but with a product layer that understands what the command means.</p>
+
+      <div class="demo-command-list">
+        <button type="button" data-demo-command="restart custom_hud">
+          <span><b>restart custom_hud</b><small>Restart one resource</small></span><i>↗</i>
+        </button>
+        <button type="button" data-demo-command="players">
+          <span><b>players</b><small>Open a player-aware response</small></span><i>↗</i>
+        </button>
+        <button type="button" data-demo-command="resources">
+          <span><b>resources</b><small>Inspect running resources</small></span><i>↗</i>
+        </button>
+        <button type="button" data-demo-command="status">
+          <span><b>status</b><small>See live server health</small></span><i>↗</i>
+        </button>
+      </div>
+    </div>
+
+    <div class="card demo-big-console-card">
+      <div class="demo-big-top">
+        <div>
+          <span class="demo-live-dot"></span>
+          <span>roleplay-01 / FXServer</span>
+        </div>
+        <span>PUBLIC DEMO</span>
+      </div>
+
+      <div class="demo-big-content">
+        <div class="demo-big-status">
+          <div><small>PLAYERS</small><strong id="demoPlayersCount">93 / 128</strong></div>
+          <div><small>RESOURCES</small><strong id="demoResourceCount">184</strong></div>
+          <div><small>STATE</small><strong id="demoServerState">ONLINE</strong></div>
+        </div>
+
+        <div class="demo-console demo-console-large" id="demoConsoleLarge" aria-live="polite">
+          <div class="demo-line"><span class="violet">13:18:44</span> [qbx_core] framework ready</div>
+          <div class="demo-line"><span class="cyan">13:18:45</span> [ox_inventory] 714 items loaded</div>
+          <div class="demo-line"><span class="green">13:18:46</span> RIFTGRID adapter connected</div>
+          <div class="demo-line demo-hint">Type a command below. Try <b>restart custom_hud</b>.</div>
+        </div>
+
+        <div class="demo-command-area large">
+          <div class="demo-command-row">
+            <span class="demo-prompt">›</span>
+            <input
+              id="demoCommandInputLarge"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              value="restart custom_hud"
+              aria-label="Large interactive FiveM demo command"
+            />
+            <button id="demoRunButtonLarge" type="button">RUN COMMAND</button>
+          </div>
+          <div class="demo-suggestions" id="demoSuggestionsLarge" hidden></div>
+        </div>
+
+        <div class="demo-feedback-panel" id="demoFeedbackPanel">
+          <div class="demo-feedback-icon">↳</div>
+          <div>
+            <small>RIFTGRID UNDERSTANDS THE ACTION</small>
+            <strong id="demoFeedbackTitle">Resource operation ready</strong>
+            <p id="demoFeedbackText">The console stays a real console — RIFTGRID adds structure around it.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section shell" id="runtime">
+  <div class="section-head"><div><p class="section-kicker">01 / FXSERVER RUNTIME</p><h2>Artifacts, secrets,<br><span>startup and health.</span></h2></div><p class="section-copy">The adapter owns the logic that makes FiveM FiveM: artifact versioning, startup semantics, required ports and runtime health.</p></div>
+  <div class="metric-grid">
+    <div class="metric card"><small>FXSERVER</small><strong>ONLINE</strong><span>runtime healthy</span></div>
+    <div class="metric card"><small>TXADMIN</small><strong>LINKED</strong><span>management layer</span></div>
+    <div class="metric card"><small>TCP / UDP</small><strong>30120</strong><span>allocated safely</span></div>
+    <div class="metric card"><small>PLAYERS</small><strong>93</strong><span>of 128</span></div>
+  </div>
+</section>
+
+<section class="section shell" id="resources">
+  <div class="section-head"><div><p class="section-kicker">02 / RESOURCES</p><h2>Not just files.<br><span>Operational units.</span></h2></div><p class="section-copy">Resources can be detected and controlled through the adapter, while the file manager still exposes the underlying server data.</p></div>
+  <div class="card table">
+    <div class="row head"><span>RESOURCE</span><span>STATE</span><span>CPU</span><span>TYPE</span><span>ACTION</span></div>
+    <div class="row"><span>qbx_core</span><span><i class="dot"></i> started</span><span>0.8%</span><span>framework</span><span>restart</span></div>
+    <div class="row"><span>ox_inventory</span><span><i class="dot"></i> started</span><span>1.3%</span><span>system</span><span>restart</span></div>
+    <div class="row"><span>pma-voice</span><span><i class="dot"></i> started</span><span>0.4%</span><span>voice</span><span>restart</span></div>
+    <div class="row"><span>custom_hud</span><span><i class="dot warn"></i> stopped</span><span>0.0%</span><span>custom</span><span>start</span></div>
+  </div>
+</section>
+
+<section class="section shell" id="txadmin">
+  <div class="story">
+    <div class="story-copy"><p class="section-kicker">03 / TXADMIN</p><h2 id="storyDynamic">Integrate</h2><p>RIFTGRID does not need to rebuild txAdmin on day one. It can make txAdmin part of a larger operational product.</p></div>
+    <div class="story-steps">
+      <article class="story-step" data-label="Integrate"><span class="step-index">01 / INTEGRATE</span><h3>Ship with FXServer.</h3><p>txAdmin is provisioned as part of the FiveM server lifecycle instead of being treated as a separate mystery URL.</p></article>
+      <article class="story-step" data-label="Expose"><span class="step-index">02 / EXPOSE</span><h3>One-click management entry.</h3><p>The server page exposes txAdmin status and a secure management route or reverse-proxy entry point.</p></article>
+      <article class="story-step" data-label="Complement"><span class="step-index">03 / COMPLEMENT</span><h3>RIFTGRID handles the infrastructure.</h3><p>Backups, node placement, storage, cluster health, database provisioning and migrations remain responsibilities of the control plane.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="section shell" id="database">
+  <div class="section-head"><div><p class="section-kicker">04 / DATABASE</p><h2>Database-aware<br><span>from server creation.</span></h2></div><p class="section-copy">A FiveM template can request MariaDB/MySQL as part of the server definition, with credentials delivered as secrets rather than plain UI state.</p></div>
+  <div class="split">
+    <div class="feature-card card"><span class="mini-tag">SERVER TEMPLATE</span><h3>FiveM + Qbox + MariaDB</h3><p>Define the stack once, then deploy the same known-good shape again.</p><div class="feature-art"><div style="position:absolute;inset:24px;display:grid;gap:10px"><span class="mini-tag">FXServer</span><span class="mini-tag">Qbox</span><span class="mini-tag">MariaDB</span><span class="mini-tag">Persistent storage</span></div></div></div>
+    <div class="feature-card card"><span class="mini-tag">SECRET DELIVERY</span><h3>No plaintext credentials.</h3><p>Credentials are generated, stored as secrets and injected to the workload without normal frontend exposure.</p><div class="feature-art"><div class="console" style="position:absolute;inset:14px">DB_HOST = mariadb-roleplay-01<br>DB_NAME = roleplay<br>DB_USER = roleplay_app<br>DB_PASSWORD = <span class="green">••••••••••••</span></div></div></div>
+  </div>
+</section>
+
+<section class="section shell"><p class="section-kicker">05 / THE REAL POINT</p><h2 class="big-quote">If a future GTA platform arrives, <span>you do not rebuild the cloud.</span> You build <em>one new adapter.</em></h2></section>
+<section class="cta shell"><div class="cta-box"><div class="grid-bg"></div><div style="position:relative;z-index:2"><p class="section-kicker">UNDER THE HOOD</p><h2>See what makes the grid possible.</h2><a class="btn primary" href="architecture.html">Architecture →</a></div></div></section>
+</main>
+
+
+<footer class="site-footer">
+  <div class="shell footer-v6">
+    <div class="footer-brand">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span></div>
+      <p>The operating system for game servers.<br>Run anything. One-click when RIFTGRID understands it.</p>
+    </div>
+    <div class="footer-links">
+      <div><small>PRODUCT</small><a href="platform.html">Platform</a><a href="installers.html">Installers</a><a href="pricing.html">Pricing</a></div>
+      <div><small>DEEP DIVES</small><a href="minecraft.html">Minecraft</a><a href="fivem.html">FiveM</a><a href="architecture.html">Architecture</a></div>
+      <div><small>LEGAL</small><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="agb.html">AGB / Lizenz</a></div>
+    </div>
+  </div>
+  <div class="shell footer-bottom">
+    <span>© 2026 RIFTGRID</span>
+    <span>Self-hosted control plane · Infrastructure not included</span>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

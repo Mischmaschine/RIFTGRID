@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050608">
+<title>RIFTGRID — Cluster</title>
+<meta name="description" content="RIFTGRID — The operating system for game servers.">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="">
+
+
+<div class="top-progress" id="topProgress"></div>
+<div class="noise"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="nav-wrap">
+<header class="nav shell">
+  <a class="brand" href="index.html" aria-label="RIFTGRID Home">
+    <span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span>
+  </a>
+  <nav>
+    <a href="platform.html">Platform</a>
+    <a href="installers.html">Installers</a>
+    <a href="fivem.html">FiveM</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="pricing.html">Pricing</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="pill" href="installers.html">Browse installers</a>
+    <a class="pill primary" href="index.html#access">Request access ↗</a>
+  </div>
+</header>
+</div>
+
+<main>
+<section class="page-hero shell">
+  <div class="eyebrow">CLUSTER / EXISTING HARDWARE</div>
+  <h1>Your nodes.<br><em>One grid.</em></h1>
+  <p>You provide the servers. RIFTGRID discovers the cluster, understands capacity and decides where workloads belong. No automatic machine ordering. No hidden provider lock-in.</p>
+  <div class="hero-frame">
+    <div class="grid-bg"></div>
+    <div class="diagram">
+      <div class="diagram-node core"><small>SCHEDULER</small><strong>Best fit</strong></div>
+      <div class="diagram-node a"><small>FRA-01</small><strong>72% RAM</strong></div>
+      <div class="diagram-node b"><small>FRA-02</small><strong>41% RAM</strong></div>
+      <div class="diagram-node c"><small>FRA-03</small><strong>Maintenance</strong></div>
+      <div class="diagram-node d"><small>FRA-04</small><strong>23% RAM</strong></div>
+      <svg viewBox="0 0 1200 560" preserveAspectRatio="none">
+        <path d="M220,130 C390,130 470,190 600,235"/><path d="M985,145 C820,150 750,190 600,235"/><path d="M220,455 C390,410 460,330 600,235"/><path d="M990,455 C810,410 730,330 600,235"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head"><div><p class="section-kicker">01 / LIVE CAPACITY</p><h2>Know the cluster<br><span>before placing work.</span></h2></div><p class="section-copy">Node health, maintenance, RAM, CPU and game requirements all become scheduler inputs.</p></div>
+  <div class="kpi-strip"><div class="kpi"><small>NODES</small><strong>04</strong></div><div class="kpi"><small>HEALTHY</small><strong>03</strong></div><div class="kpi"><small>MAINTENANCE</small><strong>01</strong></div><div class="kpi"><small>FREE RAM</small><strong>122 GB</strong></div></div>
+</section>
+
+<section class="section shell">
+  <div class="story">
+    <div class="story-copy"><p class="section-kicker">02 / SCHEDULER</p><h2 id="storyDynamic">Filter</h2><p>The scheduler is explicit enough that you can explain why a server landed where it did.</p></div>
+    <div class="story-steps">
+      <article class="story-step" data-label="Filter"><span class="step-index">01 / FILTER</span><h3>Remove impossible nodes.</h3><p>Maintenance, unreachable state, missing labels and insufficient resources immediately remove a node from consideration.</p></article>
+      <article class="story-step" data-label="Score"><span class="step-index">02 / SCORE</span><h3>Compare the healthy candidates.</h3><p>Free RAM, CPU headroom, storage and placement rules produce a best-fit score.</p></article>
+      <article class="story-step" data-label="Place"><span class="step-index">03 / PLACE</span><h3>Choose fra-04.</h3><p>The workload is scheduled onto the selected node through Kubernetes.</p></article>
+      <article class="story-step" data-label="Explain"><span class="step-index">04 / EXPLAIN</span><h3>Make the reason visible.</h3><p>“fra-04 selected: healthy, 23% RAM used, required label present.” Operations should be understandable.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head"><div><p class="section-kicker">03 / NODE OPERATIONS</p><h2>Maintenance without<br><span>guessing what breaks.</span></h2></div><p class="section-copy">Disable new scheduling, inspect workloads and migrate only when storage allows it.</p></div>
+  <div class="card table">
+    <div class="row head"><span>NODE</span><span>HEALTH</span><span>CPU</span><span>RAM</span><span>WORKLOADS</span></div>
+    <div class="row"><span>fra-01</span><span><i class="dot"></i> healthy</span><span>44%</span><span>72%</span><span>17</span></div>
+    <div class="row"><span>fra-02</span><span><i class="dot"></i> healthy</span><span>29%</span><span>41%</span><span>11</span></div>
+    <div class="row"><span>fra-03</span><span><i class="dot warn"></i> maintenance</span><span>12%</span><span>58%</span><span>9</span></div>
+    <div class="row"><span>fra-04</span><span><i class="dot"></i> healthy</span><span>18%</span><span>23%</span><span>10</span></div>
+  </div>
+</section>
+
+<section class="section shell">
+  <p class="section-kicker">04 / CAPACITY POLICY</p>
+  <h2 class="big-quote">When capacity is gone, <span>RIFTGRID says so.</span> It does not <em>buy hardware behind your back.</em></h2>
+</section>
+<section class="cta shell"><div class="cta-box"><div class="grid-bg"></div><div style="position:relative;z-index:2"><p class="section-kicker">DEEPER</p><h2>See the system behind the dashboard.</h2><a class="btn primary" href="architecture.html">Architecture →</a></div></div></section>
+</main>
+
+
+<footer class="site-footer">
+  <div class="shell footer-v6">
+    <div class="footer-brand">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span></div>
+      <p>The operating system for game servers.<br>Run anything. One-click when RIFTGRID understands it.</p>
+    </div>
+    <div class="footer-links">
+      <div><small>PRODUCT</small><a href="platform.html">Platform</a><a href="installers.html">Installers</a><a href="pricing.html">Pricing</a></div>
+      <div><small>DEEP DIVES</small><a href="minecraft.html">Minecraft</a><a href="fivem.html">FiveM</a><a href="architecture.html">Architecture</a></div>
+      <div><small>LEGAL</small><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="agb.html">AGB / Lizenz</a></div>
+    </div>
+  </div>
+  <div class="shell footer-bottom">
+    <span>© 2026 RIFTGRID</span>
+    <span>Self-hosted control plane · Infrastructure not included</span>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

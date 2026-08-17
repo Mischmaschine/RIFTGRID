@@ -1,0 +1,55 @@
+name: Bug report
+description: Report reproducible incorrect behavior without including secrets or private data.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include credentials, kubeconfigs, database dumps, world files, backup archives, session cookies, or license keys."
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Web console
+        - API
+        - Worker / tasks
+        - Kubernetes reconciliation
+        - Installer or adapter
+        - Storage / backup / restore
+        - Authentication / RBAC
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: "1. ...\n2. ...\n3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: RIFTGRID commit/version, OS, Node.js, Kubernetes distribution/version, and browser where relevant.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted diagnostics
+      render: shell
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed all secrets and private persistent data.
+          required: true

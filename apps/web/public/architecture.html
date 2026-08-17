@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050608">
+<title>RIFTGRID — Architecture</title>
+<meta name="description" content="RIFTGRID — The operating system for game servers.">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="">
+
+
+<div class="top-progress" id="topProgress"></div>
+<div class="noise"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="nav-wrap">
+<header class="nav shell">
+  <a class="brand" href="index.html" aria-label="RIFTGRID Home">
+    <span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span>
+  </a>
+  <nav>
+    <a href="platform.html">Platform</a>
+    <a href="installers.html">Installers</a>
+    <a href="fivem.html">FiveM</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="pricing.html">Pricing</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="pill" href="installers.html">Browse installers</a>
+    <a class="pill primary" href="index.html#access">Request access ↗</a>
+  </div>
+</header>
+</div>
+
+<main>
+<section class="page-hero shell">
+  <div class="eyebrow">ARCHITECTURE / THE SYSTEM BENEATH THE PRODUCT</div>
+  <h1>Built like a platform.<br><em>Not a panel.</em></h1>
+  <p>The architecture is deliberately split so the core can stay generic while game adapters, storage providers and orchestration integrations evolve independently.</p>
+  <div class="hero-frame">
+    <div class="grid-bg"></div>
+    <div class="diagram">
+      <div class="diagram-node core"><small>CONTROL PLANE</small><strong>RIFTGRID Core</strong></div>
+      <div class="diagram-node a"><small>EDGE</small><strong>Web + API</strong></div>
+      <div class="diagram-node b"><small>ORCHESTRATION</small><strong>Kubernetes</strong></div>
+      <div class="diagram-node c"><small>DOMAIN</small><strong>Game SDK</strong></div>
+      <div class="diagram-node d"><small>STATE</small><strong>Postgres / Redis</strong></div>
+      <svg viewBox="0 0 1200 560" preserveAspectRatio="none"><path d="M220,130 C390,130 470,190 600,235"/><path d="M985,145 C820,150 750,190 600,235"/><path d="M220,455 C390,410 460,330 600,235"/><path d="M990,455 C810,410 730,330 600,235"/></svg>
+    </div>
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head"><div><p class="section-kicker">01 / BOUNDARIES</p><h2>Strong boundaries<br><span>keep the core clean.</span></h2></div><p class="section-copy">Kubernetes objects should not leak everywhere. Game-specific conditions should not leak everywhere. Storage vendors should not leak everywhere.</p></div>
+  <div class="link-grid">
+    <div class="link-card"><small>CONTROL PLANE</small><h3>Domain + API</h3><p>Servers, tasks, users, permissions, templates, desired state and orchestration intent.</p></div>
+    <div class="link-card"><small>GAME SDK</small><h3>Game intelligence</h3><p>Install, update, config, capabilities, console parsing, health checks and backup paths.</p></div>
+    <div class="link-card"><small>KUBERNETES LAYER</small><h3>Infrastructure translation</h3><p>Pods, services, PVCs, secrets, logs and events behind a dedicated service boundary.</p></div>
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head"><div><p class="section-kicker">02 / RECONCILIATION</p><h2>Desired state<br><span>is the source of truth.</span></h2></div><p class="section-copy">The system continuously reasons about what should be true versus what is true right now.</p></div>
+  <div class="timeline">
+    <div class="timeline-item active"><small>USER INTENT</small><h3>desiredState = RUNNING</h3><p>The user asks for the outcome, not a specific sequence of commands.</p></div>
+    <div class="timeline-item active"><small>RECONCILE</small><h3>actualState = STOPPED</h3><p>The worker identifies the difference and creates the required task.</p></div>
+    <div class="timeline-item active"><small>ORCHESTRATE</small><h3>Kubernetes workload starts</h3><p>Infrastructure is created idempotently.</p></div>
+    <div class="timeline-item active"><small>VERIFY</small><h3>Game adapter health check passes</h3><p>Actual state becomes RUNNING only when the game itself is considered healthy.</p></div>
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head"><div><p class="section-kicker">03 / ADAPTER CONTRACT</p><h2>One SDK.<br><span>Infinite game shapes.</span></h2></div><p class="section-copy">The adapter is the reason a future game can be added without rewriting scheduler, auth, tasks, storage or the dashboard shell.</p></div>
+  <div class="console reveal-on-scroll" style="font-size:13px;line-height:2.05">
+    <span class="violet">interface</span> GameAdapter {<br>
+    &nbsp;&nbsp;metadata(): AdapterMetadata<br>
+    &nbsp;&nbsp;capabilities(): CapabilitySet<br>
+    &nbsp;&nbsp;serverDefinition(input): WorkloadDefinition<br>
+    &nbsp;&nbsp;install(ctx): TaskPlan<br>
+    &nbsp;&nbsp;update(ctx): TaskPlan<br>
+    &nbsp;&nbsp;healthCheck(ctx): HealthResult<br>
+    &nbsp;&nbsp;parseConsole(line): GameEvent | null<br>
+    &nbsp;&nbsp;backupDefinition(): BackupDefinition<br>
+    }<br><br>
+    <span class="green">// Core does not care whether this is Minecraft, FiveM or a future game.</span>
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head"><div><p class="section-kicker">04 / STACK</p><h2>Modern where useful.<br><span>Boring where reliability wins.</span></h2></div><p class="section-copy">A practical stack: TypeScript, Next.js, Node, PostgreSQL, Redis, Kubernetes and a clean provider model.</p></div>
+  <div class="kpi-strip"><div class="kpi"><small>FRONTEND</small><strong>Next.js</strong></div><div class="kpi"><small>DATA</small><strong>Postgres</strong></div><div class="kpi"><small>QUEUE</small><strong>Redis</strong></div><div class="kpi"><small>ORCHESTRATION</small><strong>K8s</strong></div></div>
+</section>
+
+<section class="section shell">
+  <p class="section-kicker">05 / NORTH STAR</p>
+  <h2 class="big-quote">Minecraft today. FiveM next. <span>A future Cfx platform later.</span> Same core. Same grid. <em>New adapter.</em></h2>
+</section>
+<section class="cta shell"><div class="cta-box"><div class="grid-bg"></div><div style="position:relative;z-index:2"><p class="section-kicker">BACK TO PRODUCT</p><h2>Architecture is only useful when it feels effortless.</h2><a class="btn primary" href="index.html">Back to RIFTGRID →</a></div></div></section>
+</main>
+
+
+<footer class="site-footer">
+  <div class="shell footer-v6">
+    <div class="footer-brand">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span></div>
+      <p>The operating system for game servers.<br>Run anything. One-click when RIFTGRID understands it.</p>
+    </div>
+    <div class="footer-links">
+      <div><small>PRODUCT</small><a href="platform.html">Platform</a><a href="installers.html">Installers</a><a href="pricing.html">Pricing</a></div>
+      <div><small>DEEP DIVES</small><a href="minecraft.html">Minecraft</a><a href="fivem.html">FiveM</a><a href="architecture.html">Architecture</a></div>
+      <div><small>LEGAL</small><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="agb.html">AGB / Lizenz</a></div>
+    </div>
+  </div>
+  <div class="shell footer-bottom">
+    <span>© 2026 RIFTGRID</span>
+    <span>Self-hosted control plane · Infrastructure not included</span>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

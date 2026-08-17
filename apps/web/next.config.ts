@@ -5,6 +5,13 @@ const nextConfig = (phase: string): NextConfig => ({
   poweredByHeader: false,
   // Keep production builds isolated from a concurrently running dev server.
   distDir: phase === PHASE_DEVELOPMENT_SERVER ? ".next" : ".next-build",
+  async rewrites() {
+    return {
+      beforeFiles: [{ source: "/", destination: "/index.html" }],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 });
 
 export default nextConfig;

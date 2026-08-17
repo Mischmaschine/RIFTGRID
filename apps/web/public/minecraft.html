@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050608">
+<title>RIFTGRID — Minecraft</title>
+<meta name="description" content="RIFTGRID — The operating system for game servers.">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="page-minecraft">
+
+
+<div class="top-progress" id="topProgress"></div>
+<div class="noise"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="nav-wrap">
+<header class="nav shell">
+  <a class="brand" href="index.html" aria-label="RIFTGRID Home">
+    <span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span>
+  </a>
+  <nav>
+    <a href="platform.html">Platform</a>
+    <a href="installers.html">Installers</a>
+    <a href="fivem.html">FiveM</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="pricing.html">Pricing</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="pill" href="installers.html">Browse installers</a>
+    <a class="pill primary" href="index.html#access">Request access ↗</a>
+  </div>
+</header>
+</div>
+
+<main>
+<section class="page-hero shell">
+  <div class="eyebrow">GAME ADAPTER / 001 / MINECRAFT</div>
+  <h1>Cloud-native<br><em>Minecraft.</em></h1>
+  <p>Not just a container with Java inside. The Minecraft adapter understands Paper, players, worlds, server.properties, console behavior, backups and the operations that matter to an actual network.</p>
+  <div class="subnav"><a href="#dashboard">Dashboard</a><a href="#properties">Properties</a><a href="#groups">Server groups</a><a href="#future">Roadmap</a></div>
+  <div class="hero-frame">
+    <div class="grid-bg"></div>
+    <div class="mock-window">
+      <div class="mock-top"><i></i><i></i><i></i><span style="margin-left:12px;font-size:9px;color:#69727e">MINECRAFT / PAPER / survival-01</span></div>
+      <div class="mock-layout">
+        <div class="mock-side"><b>Overview</b><span>Console</span><span>Players</span><span>Worlds</span><span>Plugins</span><span>Files</span><span>Backups</span><span>Performance</span></div>
+        <div class="mock-main">
+          <h4>survival-01 <span class="mini-tag" style="float:right;color:var(--acid)">RUNNING</span></h4>
+          <div class="mock-stat-grid"><div class="mock-stat"><small>PLAYERS</small><strong>24 / 50</strong></div><div class="mock-stat"><small>CPU</small><strong>34%</strong></div><div class="mock-stat"><small>RAM</small><strong>5.4 GB</strong></div></div>
+          <div class="console" style="margin-top:14px"><span class="green">[Server thread/INFO]: Done (3.218s)! For help, type "help"</span><br>[Server thread/INFO]: Max joined the game<br>[Server thread/INFO]: Alex issued server command: /spawn<br><br>› <span class="terminal-caret"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section shell" id="dashboard">
+  <div class="section-head"><div><p class="section-kicker">01 / GAME-NATIVE UI</p><h2>Everything you expect.<br><span>Only where it belongs.</span></h2></div><p class="section-copy">The adapter announces capabilities. The frontend builds the right experience from those capabilities instead of scattering game checks through the app.</p></div>
+  <div class="stack-cards">
+    <article class="stack-card"><span class="mini-tag">CONSOLE</span><h3>Live output, real commands.</h3><p>WebSocket console streaming with reconnect logic and historic logs — built around the server process, not fake polling.</p><div class="console" style="margin-top:38px">[12:54:30 INFO]: Preparing spawn area: 96%<br><span class="green">[12:54:31 INFO]: Done (3.218s)!</span><br>› say RIFTGRID online <span class="terminal-caret"></span></div></article>
+    <article class="stack-card"><span class="mini-tag">PLAYERS</span><h3>Know who is in the world.</h3><p>Current player list, UUID where available, join time and action-ready architecture for kick, ban and whitelist workflows.</p><div class="kpi-strip" style="margin-top:45px"><div class="kpi"><small>ONLINE</small><strong>24</strong></div><div class="kpi"><small>CAPACITY</small><strong>50</strong></div><div class="kpi"><small>PEAK</small><strong>41</strong></div><div class="kpi"><small>UPTIME</small><strong>3d</strong></div></div></article>
+    <article class="stack-card"><span class="mini-tag">WORLDS + PLUGINS</span><h3>Game data becomes visible infrastructure.</h3><p>World folders, storage footprint and plugin presence can be exposed in the same operational model as CPU and memory.</p></article>
+  </div>
+</section>
+
+<section class="section shell" id="properties">
+  <div class="section-head"><div><p class="section-kicker">02 / SERVER.PROPERTIES</p><h2>Settings people<br><span>actually understand.</span></h2></div><p class="section-copy">Raw files stay available, but common settings should not require users to remember syntax or field names.</p></div>
+  <div class="split">
+    <div class="card feature-card"><span class="mini-tag">FORM VIEW</span><h3>Human controls.</h3><p>MOTD, max players, difficulty, gamemode, PvP, whitelist, online mode and distances.</p><div class="feature-art" style="padding:18px"><div style="display:grid;gap:10px;font-size:10px;color:#8c95a2"><span>MOTD <b style="float:right;color:white">A RIFTGRID world</b></span><span>Max players <b style="float:right;color:white">50</b></span><span>Difficulty <b style="float:right;color:white">hard</b></span><span>PvP <b style="float:right;color:var(--acid)">enabled</b></span></div></div></div>
+    <div class="card feature-card"><span class="mini-tag">RAW FILE</span><h3>Still fully yours.</h3><p>Advanced users can switch into file editing without losing the safety of validation.</p><div class="feature-art"><div class="console" style="position:absolute;inset:14px">motd=A RIFTGRID world<br>max-players=50<br>difficulty=hard<br>gamemode=survival<br>pvp=true<br>view-distance=10</div></div></div>
+  </div>
+</section>
+
+<section class="section shell" id="groups">
+  <div class="section-head"><div><p class="section-kicker">03 / SERVER GROUPS</p><h2>Where SimpleCloud<br><span>meets Kubernetes.</span></h2></div><p class="section-copy">Group-based, instance-oriented workloads can scale inside the capacity you already have — without pretending persistent Survival servers are disposable.</p></div>
+  <div class="story">
+    <div class="story-copy"><span class="mini-tag">BEDWARS GROUP</span><h2 id="storyDynamic">Observe</h2><p>Scroll through the lifecycle of an instance group.</p></div>
+    <div class="story-steps">
+      <article class="story-step" data-label="Observe"><span class="step-index">01 / OBSERVE</span><h3>BedWars-1 is filling.</h3><p>72 / 80 players. BedWars-2 is at 68 / 80. The group approaches its threshold.</p></article>
+      <article class="story-step" data-label="Decide"><span class="step-index">02 / DECIDE</span><h3>Capacity exists.</h3><p>The scheduler checks current nodes and confirms there is room for another instance.</p></article>
+      <article class="story-step" data-label="Scale"><span class="step-index">03 / SCALE</span><h3>BedWars-3 starts.</h3><p>A new instance is created from the group template and registered into service discovery.</p></article>
+      <article class="story-step" data-label="Contract"><span class="step-index">04 / CONTRACT</span><h3>Empty instance leaves cleanly.</h3><p>RIFTGRID never kills an instance with active players just to hit a target count.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="section shell" id="future">
+  <p class="section-kicker">04 / ROADMAP</p>
+  <h2 class="big-quote">Paper first. <span>Then</span> Purpur, Velocity, Fabric, Forge <em>without changing the core.</em></h2>
+</section>
+<section class="cta shell"><div class="cta-box"><div class="grid-bg"></div><div style="position:relative;z-index:2"><p class="section-kicker">SECOND ADAPTER</p><h2>Prove the core is universal.</h2><a class="btn primary" href="fivem.html">Explore FiveM →</a></div></div></section>
+</main>
+
+
+<footer class="site-footer">
+  <div class="shell footer-v6">
+    <div class="footer-brand">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span></div>
+      <p>The operating system for game servers.<br>Run anything. One-click when RIFTGRID understands it.</p>
+    </div>
+    <div class="footer-links">
+      <div><small>PRODUCT</small><a href="platform.html">Platform</a><a href="installers.html">Installers</a><a href="pricing.html">Pricing</a></div>
+      <div><small>DEEP DIVES</small><a href="minecraft.html">Minecraft</a><a href="fivem.html">FiveM</a><a href="architecture.html">Architecture</a></div>
+      <div><small>LEGAL</small><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="agb.html">AGB / Lizenz</a></div>
+    </div>
+  </div>
+  <div class="shell footer-bottom">
+    <span>© 2026 RIFTGRID</span>
+    <span>Self-hosted control plane · Infrastructure not included</span>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -30,19 +30,21 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 - Added an optional FiveM managed-database binding. Connection metadata is supplied as runtime environment, while `DATABASE_PASSWORD` remains a Kubernetes Secret reference.
 - Diagnosed and fixed the pathological Windows pnpm relink without weakening Defender. The initiating defect was interrupted/concurrent install metadata; Defender amplified small-file work. The store was valid, the workspace graph was acyclic, and the linker configuration was stabilized with a project-local store and no implicit install-on-run.
 - Kept production and development Next.js outputs separate and retained the Minecraft JVM headroom fix that prevents the prior 2 GiB-container OOM restart.
+- Integrated the supplied RIFTGRID V6 commercial site as the public root landing page. Its HTML, CSS, JavaScript, copy, and visuals are preserved byte-for-byte; the existing product console remains available at `/dashboard` and `/login`.
+- Hardened Kubernetes event timestamp normalization for Windows/Docker resume scenarios and preserved live per-node workload counts in the overview API instead of discarding them after discovery.
 
 ## IN PROGRESS
 
 - FiveM deployment acceptance is implemented up to the external credential boundary. No FiveM task, StatefulSet, pod, service, or PVC has been created because a Cfx.re license key is not available.
-- Managed-database provisioning is implemented, but creating a disposable live database during this milestone was not attempted after local browser and kubeconfig access were denied by the active security/usage limit.
 - Backup restore is implemented and constrained to a stopped workload. Its live UI action was denied before the request started; no restore or data mutation occurred.
 
 ## VERIFIED
 
-- Minecraft `survival-01`: RIFTGRID/UI `RUNNING`; StatefulSet `rg-73ae6d88-13e` `1/1`; pod `rg-73ae6d88-13e-0` `1/1 Ready`, `Running`, 0 restarts on `k3d-riftgrid-dev-agent-1`.
+- Minecraft `survival-01`: RIFTGRID/UI `RUNNING`; StatefulSet `rg-73ae6d88-13e` `1/1`; pod `rg-73ae6d88-13e-0` `1/1 Ready`, `Running` on `k3d-riftgrid-dev-agent-1`. Docker Desktop was resumed once during acceptance; the pod records four recovery restarts from the temporary cluster-DNS interruption and has remained stable since.
 - Its original PVC `rg-73ae6d88-13e` remains `Bound` to PV `pvc-f433b1c8-ee7d-416c-b302-c6610a5edffe`, 5 GiB, and mounted by the same StatefulSet. `/data/world/level.dat` and `/data/server.properties` are present.
 - Minecraft service remains `25565:30000/TCP`; `localhost:30000` is reachable. Previously saved world/configuration data, including the accepted world-border persistence check, was preserved.
 - Generic `custom-web-01`: RIFTGRID `RUNNING`; pod `rg-95622dff-2a5-0` `1/1 Ready`, 0 restarts; PVC `rg-95622dff-2a5` is `Bound` at 5 GiB; `localhost:30001` returns HTTP 200.
+- Managed MariaDB acceptance completed through RIFTGRID: `test-db` was provisioned, reached `RUNNING`, and was then stopped through the normal UI action. StatefulSet `db-8600c5ea-61c` is intentionally scaled to 0 and its original 5 GiB PVC remains `Bound`.
 - A real Minecraft archive `rg-73ae6d88-13e-63327387-e1a9-41b1-b950-97744703932b.tar.gz` completed as `AVAILABLE` at 222.3 MiB with SHA-256 `8fec1695656efde6cd236168148d1951ae817ef630532ac8e3a7138ebe04b8af` on the bound 10 GiB backup claim `bk-rg-73ae6d88-13e`.
 - The initial archive attempt exposed read permissions on mode-0600 Minecraft files. The backup job was narrowed to `DAC_READ_SEARCH`, a second real backup succeeded, and Minecraft returned to `RUNNING`; no source PVC was replaced.
 - After the stopped-workload restore precondition test was cancelled by browser policy before restore execution, Minecraft was started normally. The live RIFTGRID UI reports `RUNNING`/desired `RUNNING`; `localhost:30000` is reachable, and `custom-web-01` still returns HTTP 200 on `localhost:30001`.
@@ -50,8 +52,9 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 - The FiveM runtime fails safely when its artifact URL or Secret-backed `CFX_LICENSE_KEY` is absent, and the UI cannot submit until a Secret name is provided.
 - The live UI was inspected for the installer catalog, deploy flows, server identity, tasks, activity, storage, networking, adapters, cluster state, and disabled unfinished destinations.
 - Database migration completed successfully. No pnpm reinstall, workspace relink, cluster recreation, PVC replacement, or Minecraft recreation was performed.
-- Before the current operations/FiveM-database increment, quality gates ran once sequentially: typecheck 12/12 tasks; lint 12/12 tasks; tests 21/21 tasks with 25 assertions; build 12/12 tasks with 17 web routes emitted. The current API and worker watch processes restarted after the latest source edits, but new CLI gates could not start because Node hit the Windows sandbox boundary and the required retry was denied by the active usage limit.
+- After the landing-page and live-overview fixes, quality gates ran sequentially and passed: typecheck 12/12 tasks; lint 12/12 tasks; tests 21/21 tasks with 25 assertions; build 12/12 tasks with 22 application pages generated.
 - The production build used Next.js's supported WASM fallback because the optional native Windows SWC DLL could not load; the build completed successfully.
+- The public `/` route, all supplied static assets, and the existing `/dashboard` were verified live. Browser console errors: 0. Node workload counts report `1`, `1`, and `0` for the two agents and control-plane node.
 
 ## BLOCKED
 
@@ -62,10 +65,9 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 
 ## NEXT
 
-1. When local tool execution is available again, run the latest typecheck, lint, tests, and build once, sequentially; then perform one non-destructive managed MariaDB acceptance deployment and inspect its readiness through RIFTGRID.
-2. Perform the already implemented backup restore acceptance only through the explicit UI action while Minecraft is stopped, then verify the preserved marker and start the existing workload normally.
-3. After the user supplies the Cfx.re credential, create or confirm the Kubernetes Secret without echoing its value.
-4. Deploy FiveM once through **Deploy Server → FiveM**, optionally bind the managed database, and verify task success, pod readiness, persistent storage, UDP/TCP game endpoint, txAdmin onboarding, and an actual client connection.
+1. Perform the already implemented backup restore acceptance only through the explicit UI action while Minecraft is stopped, then verify the preserved marker and start the existing workload normally.
+2. After the user supplies the Cfx.re credential, create or confirm the Kubernetes Secret without echoing its value.
+3. Deploy FiveM once through **Deploy Server → FiveM**, optionally bind the managed database, and verify task success, pod readiness, persistent storage, UDP/TCP game endpoint, txAdmin onboarding, and an actual client connection.
 
 ## KNOWN LIMITATIONS
 
@@ -73,6 +75,5 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 - The FiveM runtime image is currently built/imported locally for this development k3d cluster; it is not yet published to a production registry or pinned by digest.
 - Custom Deployment Secret references require the named Kubernetes Secret to exist in `riftgrid-servers`; RIFTGRID does not create secrets from plaintext in the deployment form.
 - The first failed backup remains visible as diagnostic history; its pre-fix partial archive was created before best-effort failure cleanup existed. It can be removed through the explicit Backups delete action when desired.
-- Live restore acceptance and live managed-database acceptance remain pending because the browser action and direct kubeconfig read were denied by the active security/usage limit. This is an acceptance limitation, not a claimed successful result.
-- The latest source increment has not received a new full quality run for the same reason; the prior complete sequential run remains valid only for the preceding milestone.
+- Live restore acceptance remains pending because it is an explicitly destructive data operation and must only be started through its deliberate UI confirmation while Minecraft is stopped.
 - NodePort allocation is suitable for the current local development cluster. Production ingress/load-balancing, TLS, observability, CSI-native snapshots, and external PostgreSQL/Redis secret management remain deployment-hardening work.

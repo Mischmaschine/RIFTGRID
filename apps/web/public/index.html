@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050608">
+<title>RIFTGRID — Run anything. Understand games.</title>
+<meta name="description" content="RIFTGRID is a universal self-hosted control plane for game servers: installers, custom deployments, Kubernetes orchestration and game-native adapters.">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="">
+
+<div class="top-progress" id="topProgress"></div>
+<div class="noise"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="nav-wrap">
+<header class="nav shell">
+  <a class="brand" href="index.html" aria-label="RIFTGRID Home">
+    <span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span>
+  </a>
+  <nav>
+    <a href="platform.html">Platform</a>
+    <a href="installers.html">Installers</a>
+    <a href="fivem.html">FiveM</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="pricing.html">Pricing</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="pill" href="installers.html">Browse installers</a>
+    <a class="pill primary" href="index.html#access">Request access ↗</a>
+  </div>
+</header>
+</div>
+
+
+<main>
+<section class="v3-hero shell v6-hero">
+  <div class="hero-orbital parallax" aria-hidden="true">
+    <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+    <div class="core"></div><div class="sat s1"></div><div class="sat s2"></div><div class="sat s3"></div>
+  </div>
+
+  <div class="hero-copy-wrap">
+    <div class="kicker-line reveal-on-scroll">UNIVERSAL GAME INFRASTRUCTURE / SELF-HOSTED</div>
+    <h1 class="reveal-on-scroll">
+      <span class="solid">Build worlds.</span>
+      <span class="ghost">Run anything.</span>
+    </h1>
+    <p class="hero-sub reveal-on-scroll">
+      Deploy any server on your own infrastructure. When RIFTGRID understands the game,
+      installation becomes one click and management becomes game-native.
+    </p>
+    <div class="hero-actions reveal-on-scroll">
+      <a class="btn primary" href="#universal-scroll">See a deployment happen →</a>
+      <a class="btn" href="installers.html">Browse installers</a>
+    </div>
+    <div class="hero-surface reveal-on-scroll">
+      <span class="badge live">● INSTALLER ENGINE</span>
+      <span class="badge">CUSTOM DEPLOYMENTS</span>
+      <span class="badge">KUBERNETES NATIVE</span>
+      <span class="badge">GAME ADAPTER SDK</span>
+    </div>
+    <div class="hero-meta reveal-on-scroll">
+      <span>YOUR HARDWARE</span>
+      <span>NO PROVIDER LOCK-IN</span>
+      <span>DESIRED STATE FIRST</span>
+    </div>
+  </div>
+
+  <div class="hero-console-card hero-runtime-card reveal-on-scroll">
+    <div class="runtime-switch">
+      <span class="runtime-tab active">custom-web-01</span>
+      <span class="runtime-tab">survival-01</span>
+    </div>
+    <div class="hrow"><strong>Custom Docker</strong><span>RUNNING</span></div>
+    <div class="mini-log">
+      <span class="vio">18:42:11</span> installer = <b>custom/docker</b><br>
+      <span class="vio">18:42:12</span> scheduler → <b>node-01</b><br>
+      <span class="vio">18:42:13</span> pvc + service reconciled<br>
+      <span class="vio">18:42:14</span> HTTP healthcheck → 200<br>
+      <span class="ok">18:42:14 state → RUNNING</span>
+    </div>
+  </div>
+</section>
+
+<section class="first-hit shell v6-statement">
+  <div class="micro reveal-on-scroll">THE PRODUCT PROMISE</div>
+  <h2 class="reveal-on-scroll">
+    If it can run on a server, <span class="outline">it can run on RIFTGRID.</span>
+  </h2>
+  <div class="under reveal-on-scroll">
+    <p>Installers remove the setup work. Adapters add deep game intelligence. The core stays universal — scheduling, storage, network, tasks and recovery work the same way underneath.</p>
+    <div class="microstat">INSTALLER = GET IT RUNNING<br>ADAPTER = UNDERSTAND IT<br>CORE = OPERATE IT</div>
+  </div>
+</section>
+
+<section class="universal-scroll" id="universal-scroll" data-u-phase="1">
+  <div class="universal-sticky">
+    <div class="universal-bg"></div>
+    <div class="shell universal-layout">
+      <div class="universal-copy">
+        <div class="eyebrow">LIVE SCROLL / UNIVERSAL DEPLOYMENT</div>
+        <div class="phase-count"><span id="uPhaseIndex">01</span> / 06</div>
+        <h3><span id="uPhaseTitle">Choose</span><br><span class="dim">what should run.</span></h3>
+        <p id="uPhaseDesc">Pick an official installer, a community package or define your own Docker workload.</p>
+        <div class="u-phase-indicator"><i class="active"></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+
+      <div class="universal-visual">
+        <div class="grid-bg"></div>
+        <svg viewBox="0 0 1000 720" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M160,130 C350,210 420,280 500,360"/>
+          <path d="M840,140 C700,220 610,280 500,360"/>
+          <path d="M160,590 C330,510 420,440 500,360"/>
+          <path d="M840,585 C690,500 600,435 500,360"/>
+        </svg>
+        <div class="u-float uf-source"><small>SOURCE</small><strong id="uSource">Custom Docker</strong></div>
+        <div class="u-float uf-node"><small>SCHEDULER</small><strong id="uNode">evaluating</strong></div>
+        <div class="u-float uf-storage"><small>STORAGE</small><strong id="uStorage">5 GiB persistent</strong></div>
+        <div class="u-float uf-network"><small>NETWORK</small><strong id="uNetwork">port pending</strong></div>
+        <div class="u-core">
+          <div>
+            <small>DEPLOYMENT</small>
+            <strong id="uDeployment">custom-web-01</strong>
+            <span id="uState">DECLARED</span>
+          </div>
+        </div>
+        <div class="u-packet up1"></div><div class="u-packet up2"></div><div class="u-packet up3"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head">
+    <div><p class="section-kicker">01 / TWO LAYERS</p><h2>Get it running.<br><span>Then understand it.</span></h2></div>
+    <p class="section-copy">RIFTGRID deliberately separates installation from game intelligence. That is what lets a brand-new dedicated server work on day one and become deeply integrated later.</p>
+  </div>
+
+  <div class="sticky-story v6-two-layer">
+    <div class="visual">
+      <div class="grid-bg"></div>
+      <div class="visual-core">
+        <div class="ring"><div><strong id="stickyVisualTitle">Installer</strong><span id="stickyVisualState">GET IT RUNNING</span></div></div>
+      </div>
+    </div>
+    <div class="text-flow">
+      <article class="text-chapter active" data-visual-title="Installer" data-visual-state="GET IT RUNNING">
+        <small>01 / INSTALLER ENGINE</small>
+        <h3>Runtime, ports, storage, startup.</h3>
+        <p>An installer describes how software reaches RUNNING — Docker image, SteamCMD, artifact download or another validated runtime.</p>
+        <div class="bullet-line"><span>Versioned manifests</span><span>Official, verified, community or local</span><span>Same scheduler and state machine underneath</span></div>
+      </article>
+      <article class="text-chapter" data-visual-title="Game Adapter" data-visual-state="UNDERSTAND THE GAME">
+        <small>02 / GAME ADAPTER</small>
+        <h3>Players, resources, worlds, config.</h3>
+        <p>When RIFTGRID knows the game, the dashboard changes with it: Minecraft worlds and properties, FiveM resources and txAdmin, future games with their own capabilities.</p>
+        <div class="bullet-line"><span>Game-native console intelligence</span><span>Dynamic navigation from capabilities</span><span>No Minecraft assumptions in the core</span></div>
+      </article>
+      <article class="text-chapter" data-visual-title="Custom" data-visual-state="DEPLOY ANY SERVER">
+        <small>03 / NO ADAPTER REQUIRED</small>
+        <h3>The catalog is convenience. Not a wall.</h3>
+        <p>Define a Docker image, command, ports, secrets, volumes and healthcheck. RIFTGRID still schedules and operates it through the exact same control plane.</p>
+        <div class="bullet-line"><span>Custom Docker deployment</span><span>Persistent storage optional</span><span>Health and desired state remain first-class</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head">
+    <div><p class="section-kicker">02 / INSTALLERS</p><h2>One click where<br><span>one click actually makes sense.</span></h2></div>
+    <p class="section-copy">Official installers handle the setup. A game adapter can then add the richer management experience — without turning RIFTGRID into a one-game panel.</p>
+  </div>
+
+  <div class="installer-showcase">
+    <a class="installer-tile card reveal-on-scroll" href="minecraft.html">
+      <div class="installer-icon minecraft-i">M</div>
+      <div><small>RIFTGRID OFFICIAL / REFERENCE</small><h3>Minecraft</h3><p>Paper + Vanilla · Persistent worlds · game-native management</p></div>
+      <span class="tile-state ready">REFERENCE</span>
+    </a>
+    <a class="installer-tile card reveal-on-scroll" href="fivem.html">
+      <div class="installer-icon fivem-i">F</div>
+      <div><small>RIFTGRID OFFICIAL / PREVIEW</small><h3>FiveM</h3><p>FXServer · Resources · txAdmin · database-aware operations</p></div>
+      <span class="tile-state preview">PREVIEW</span>
+    </a>
+    <a class="installer-tile card reveal-on-scroll" href="installers.html">
+      <div class="installer-icon docker-i">⌁</div>
+      <div><small>UNIVERSAL RUNTIME</small><h3>Custom Docker</h3><p>Image · command · ports · secrets · volumes · healthcheck</p></div>
+      <span class="tile-state ready">CUSTOM</span>
+    </a>
+    <a class="installer-tile card reveal-on-scroll" href="installers.html">
+      <div class="installer-icon future-i">+</div>
+      <div><small>REGISTRY</small><h3>Whatever comes next</h3><p>New dedicated server? Publish an installer first, then deepen it with an adapter.</p></div>
+      <span class="tile-state">EXTENSIBLE</span>
+    </a>
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head">
+    <div><p class="section-kicker">03 / ONE CONTROL PLANE</p><h2>Different workloads.<br><span>Same operational model.</span></h2></div>
+    <p class="section-copy">A game server, a custom Docker service or the next Cfx platform all pass through the same scheduling, storage, networking, health and task system.</p>
+  </div>
+  <div class="multi-workload-board card reveal-on-scroll">
+    <div class="mw-row head"><span>DEPLOYMENT</span><span>TYPE</span><span>NODE</span><span>STATE</span><span>HEALTH</span></div>
+    <div class="mw-row"><span><b>survival-01</b></span><span>Minecraft / Paper</span><span>node-01</span><span class="green-t">RUNNING</span><span>game healthy</span></div>
+    <div class="mw-row"><span><b>custom-web-01</b></span><span>Custom Docker</span><span>node-01</span><span class="green-t">RUNNING</span><span>HTTP 200</span></div>
+    <div class="mw-row"><span><b>roleplay-01</b></span><span>FiveM / FXServer</span><span>automatic</span><span class="purple-t">PREVIEW</span><span>secret-gated E2E</span></div>
+  </div>
+</section>
+
+<section class="future-game-section">
+  <div class="shell future-game-inner">
+    <p class="section-kicker reveal-on-scroll">04 / FUTURE-PROOF BY ARCHITECTURE</p>
+    <h2 class="reveal-on-scroll">Built for the game<br><em>that doesn't exist yet.</em></h2>
+    <p class="reveal-on-scroll">When a new dedicated-server platform appears, RIFTGRID should not need a new control plane. Day one: publish an installer. Later: add a deep adapter.</p>
+    <div class="future-sequence reveal-on-scroll"><span>NEW SERVER PLATFORM</span><b>→</b><span>INSTALLER</span><b>→</b><span>RUNNING</span><b>→</b><span>ADAPTER</span></div>
+  </div>
+</section>
+
+<section class="section shell pricing-teaser">
+  <div class="section-head">
+    <div><p class="section-kicker">05 / COMMERCIAL MODEL</p><h2>Free to start.<br><span>Pay when the grid becomes infrastructure.</span></h2></div>
+    <p class="section-copy">RIFTGRID is self-hosted software. You keep paying your infrastructure provider; the license is for orchestration, automation and operational depth.</p>
+  </div>
+  <div class="pricing-mini-grid">
+    <div class="pricing-mini card"><small>COMMUNITY</small><strong>€0</strong><span>1 node · 5 deployments</span></div>
+    <div class="pricing-mini card featured"><small>PRO</small><strong>€19</strong><span>/ month · 5 nodes</span></div>
+    <div class="pricing-mini card"><small>STUDIO</small><strong>€59</strong><span>/ month · 20 nodes</span></div>
+    <div class="pricing-mini card"><small>HOSTER</small><strong>€199</strong><span>/ month · resale rights</span></div>
+  </div>
+  <div class="hero-actions" style="margin-top:30px"><a class="btn primary" href="pricing.html">See launch pricing →</a></div>
+</section>
+
+<section class="final-punch shell">
+  <div class="tiny reveal-on-scroll">THE NORTH STAR</div>
+  <h2 class="reveal-on-scroll">Anything today.<br><span>Deep integration</span> <em>where it matters.</em></h2>
+  <p class="reveal-on-scroll">The installer catalog makes common servers effortless. The universal runtime makes the catalog optional.</p>
+  <div class="hero-actions reveal-on-scroll" style="justify-content:center">
+    <a class="btn primary" href="installers.html">Browse installers →</a>
+    <a class="btn" href="architecture.html">View architecture</a>
+  </div>
+</section>
+
+<section class="cta shell" id="access">
+  <div class="cta-box reveal-on-scroll"><div class="grid-bg"></div>
+    <div style="position:relative;z-index:2">
+      <p class="section-kicker">PRIVATE ALPHA</p>
+      <h2>Your hardware. Your games. One operating layer.</h2>
+      <p>RIFTGRID is being built self-hosted first — from universal deployments to game-native management.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="pricing.html">View launch pricing →</a>
+        <a class="btn" href="platform.html">Explore platform</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+
+<footer class="site-footer">
+  <div class="shell footer-v6">
+    <div class="footer-brand">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><span>RIFTGRID</span></div>
+      <p>The operating system for game servers.<br>Run anything. One-click when RIFTGRID understands it.</p>
+    </div>
+    <div class="footer-links">
+      <div><small>PRODUCT</small><a href="platform.html">Platform</a><a href="installers.html">Installers</a><a href="pricing.html">Pricing</a></div>
+      <div><small>DEEP DIVES</small><a href="minecraft.html">Minecraft</a><a href="fivem.html">FiveM</a><a href="architecture.html">Architecture</a></div>
+      <div><small>LEGAL</small><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="agb.html">AGB / Lizenz</a></div>
+    </div>
+  </div>
+  <div class="shell footer-bottom">
+    <span>© 2026 RIFTGRID</span>
+    <span>Self-hosted control plane · Infrastructure not included</span>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
