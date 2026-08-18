@@ -2,6 +2,7 @@
 
 - [Home](Home)
 - [Getting Started](Getting-Started)
+- [Guided installer](https://github.com/Mischmaschine/RIFTGRID/blob/main/docs/installer.md)
 - [Architecture](Architecture)
 - [Operations](Operations)
 - [Security](Security)

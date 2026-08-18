@@ -83,6 +83,27 @@
   </div>
 </section>
 
+<section class="quick-install shell" id="install">
+  <div class="quick-install-copy reveal-on-scroll">
+    <p class="section-kicker">GUIDED INSTALLATION</p>
+    <h2>One command.<br><span>Your infrastructure.</span></h2>
+    <p>Start on a clean Linux host. The terminal wizard checks the machine, asks for the public address and cluster size, generates secrets, starts RIFTGRID and verifies every service.</p>
+    <div class="install-steps">
+      <span><b>01</b> Check the host</span>
+      <span><b>02</b> Configure the cluster</span>
+      <span><b>03</b> Open RIFTGRID</span>
+    </div>
+  </div>
+  <div class="install-command-card card reveal-on-scroll">
+    <div class="install-command-top"><span>LINUX / X86-64</span><span>INTERACTIVE</span></div>
+    <div class="install-command-row">
+      <code id="installCommand">curl -fsSL https://raw.githubusercontent.com/Mischmaschine/RIFTGRID/main/install.sh | bash</code>
+      <button type="button" data-copy-target="installCommand" aria-label="Copy installation command">COPY</button>
+    </div>
+    <p>Review before running: download the script without <code>| bash</code>. Existing RIFTGRID secrets, Docker volumes, clusters and game data are preserved.</p>
+  </div>
+</section>
+
 <section class="first-hit shell v6-statement">
   <div class="micro reveal-on-scroll">THE PRODUCT PROMISE</div>
   <h2 class="reveal-on-scroll">

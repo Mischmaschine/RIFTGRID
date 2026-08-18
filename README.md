@@ -66,6 +66,16 @@ The detailed implementation and acceptance status lives in [PLAN.md](PLAN.md).
 
 ## Quick start
 
+### Guided Linux installation
+
+On a clean Linux host, run the interactive all-in-one installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Mischmaschine/RIFTGRID/main/install.sh | bash
+```
+
+The wizard checks prerequisites, asks for the public host and installation location, creates or safely reuses a dedicated k3d cluster, generates local secrets, starts PostgreSQL/Redis/the control plane, applies migrations, prepares runtime images, and verifies the result. It does not replace an existing checkout, cluster, database volume, or game PVC. See [Guided installer](docs/installer.md) for non-interactive options, lifecycle commands, networking, TLS, and the exact safety boundary.
+
 ### Prerequisites
 
 - Node.js 20+
@@ -102,6 +112,7 @@ See [Installation](docs/installation.md), [Development](docs/development.md), an
 | `pnpm build` | Build the complete monorepo |
 | `pnpm db:migrate` | Apply Drizzle database migrations |
 | `pnpm cluster:dev` | Create the local k3d development cluster |
+| `riftgrid doctor` | Diagnose a guided Linux installation |
 
 Run the four quality gates sequentially on Windows to avoid unnecessary concurrent filesystem pressure.
 
@@ -136,7 +147,7 @@ docs/               Architecture and operator documentation
 | Core model | [Architecture](docs/architecture.md) · [Desired state](docs/desired-state.md) · [Scheduler](docs/scheduler.md) |
 | Kubernetes | [Cluster access](docs/kubernetes.md) · [Networking](docs/networking.md) · [Storage](docs/storage.md) |
 | Operations | [Backups](docs/backups.md) · [Security](docs/security.md) |
-| Game support | [Game adapters](docs/game-adapters.md) · [Minecraft](docs/minecraft.md) · [FiveM](docs/fivem.md) |
+| Game support | [Game adapters](docs/game-adapters.md) · [Minecraft](docs/minecraft.md) · [FiveM](docs/fivem.md) · [Rust](docs/rust.md) · [Valheim](docs/valheim.md) |
 
 The GitHub [Wiki](https://github.com/Mischmaschine/RIFTGRID/wiki) provides a shorter operator-oriented path through the same material.
 

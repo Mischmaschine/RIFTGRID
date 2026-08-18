@@ -1,6 +1,6 @@
 # RIFTGRID delivery plan
 
-Updated: 2026-08-17
+Updated: 2026-08-18
 
 ## Product boundary
 
@@ -23,6 +23,10 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 - Added a real control-plane Overview with cluster health, deployment counts, player data where the adapter supports it, node CPU/RAM/storage capacity, tasks, warnings, deployment state, and recent activity.
 - Finished the generic six-stage deployment wizard (`SOURCE` through `REVIEW`) with installer-driven Minecraft, Custom OCI, and FiveM configuration, organization resource limits, real placement candidates, network/storage review, and no default installer selection.
 - Implemented persisted deployment templates, including creation from an existing deployment and hydration back into the generic wizard. The live `minecraft-standard` template was saved and loaded successfully without creating another workload.
+- Added immutable template revisions with automatic revision snapshots on create/update, revision history, safe restore-as-new-revision, audit events, and additive backfill of existing templates as revision 1. The Deploy review can now save its current installer configuration directly as a reusable template without creating a workload.
+- Added real installer detail pages backed by Installer Registry and organization usage data. They expose resolved versions, publisher/provenance, runtime/delivery/storage/network/health contracts, adapter capabilities, related templates, and related deployments without inventing community registry content.
+- Promoted the planned Rust and Valheim catalog entries to deployable first-party installers. Both now have validated configuration, SteamCMD delivery, Secret-backed credentials, collision-safe public ports, persistent storage, health probes, complete wizard hydration/template support, and locally built runtime images.
+- Added a SimpleCloud-style guided Linux bootstrap: one copyable Bash command now leads through host/cluster configuration, prerequisite consent, safe checkout, k3d setup, secret generation, database migration, control-plane startup, runtime-image import and end-to-end health verification. The companion `riftgrid` CLI provides status, logs, lifecycle, update and doctor commands without deleting persistent data.
 - Implemented real persistent backups through tasks, the worker, Kubernetes data jobs, a dedicated per-server backup PVC, SHA-256 checksums, manual and scheduled policies, restore/delete operations, and count/age retention. Failed archive creation now performs best-effort partial-archive cleanup while preserving diagnostic history.
 - Implemented managed MariaDB 11.8/MySQL 8.4 resources with Kubernetes Secret, PVC, ClusterIP Service, StatefulSet, real lifecycle observation, association to a deployment, and no password disclosure through the API or UI.
 - Implemented real Users/RBAC and organization Settings pages with enable/disable, role updates, last-super-admin/self-lockout protection, deployment defaults/maximums, backup defaults, and installer channel persistence.
@@ -32,18 +36,19 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 - Kept production and development Next.js outputs separate and retained the Minecraft JVM headroom fix that prevents the prior 2 GiB-container OOM restart.
 - Integrated the supplied RIFTGRID V6 commercial site as the public root landing page. Its HTML, CSS, JavaScript, copy, and visuals are preserved byte-for-byte; the existing product console remains available at `/dashboard` and `/login`.
 - Hardened Kubernetes event timestamp normalization for Windows/Docker resume scenarios and preserved live per-node workload counts in the overview API instead of discarding them after discovery.
+- Expanded the FiveM server page into an operations cockpit with live public FXServer player/resource data, pod uptime/readiness/restarts, dynamic capability tabs, configuration with secret redaction, backups, activity, performance signals, quick actions, and searchable/filterable/exportable console logs.
 
 ## IN PROGRESS
 
-- FiveM deployment acceptance is implemented up to the external credential boundary. No FiveM task, StatefulSet, pod, service, or PVC has been created because a Cfx.re license key is not available.
-- Backup restore is implemented and constrained to a stopped workload. Its live UI action was denied before the request started; no restore or data mutation occurred.
+- FiveM read-only operations are live. Authenticated player actions, resource lifecycle commands, writable console transport, and versioned `server.cfg` editing still require the scoped RIFTGRID FiveM bridge; undocumented txAdmin routes are deliberately not used.
+- Backup restore is implemented and constrained to a stopped workload. Its live acceptance remains pending; no restore or source-data replacement was performed during installer/template work.
 
 ## VERIFIED
 
-- Minecraft `survival-01`: RIFTGRID/UI `RUNNING`; StatefulSet `rg-73ae6d88-13e` `1/1`; pod `rg-73ae6d88-13e-0` `1/1 Ready`, `Running` on `k3d-riftgrid-dev-agent-1`. Docker Desktop was resumed once during acceptance; the pod records four recovery restarts from the temporary cluster-DNS interruption and has remained stable since.
+- Minecraft `survival-01` completed its live acceptance as RIFTGRID/UI `RUNNING`; StatefulSet `rg-73ae6d88-13e` was `1/1` and the pod was `1/1 Ready`. At the end of the installer/template milestone, a later authenticated `STOP_SERVER` request completed successfully and the existing StatefulSet is now deliberately scaled to `0/0`.
 - Its original PVC `rg-73ae6d88-13e` remains `Bound` to PV `pvc-f433b1c8-ee7d-416c-b302-c6610a5edffe`, 5 GiB, and mounted by the same StatefulSet. `/data/world/level.dat` and `/data/server.properties` are present.
-- Minecraft service remains `25565:30000/TCP`; `localhost:30000` is reachable. Previously saved world/configuration data, including the accepted world-border persistence check, was preserved.
-- Generic `custom-web-01`: RIFTGRID `RUNNING`; pod `rg-95622dff-2a5-0` `1/1 Ready`, 0 restarts; PVC `rg-95622dff-2a5` is `Bound` at 5 GiB; `localhost:30001` returns HTTP 200.
+- Minecraft service remains `25565:30000/TCP`; `localhost:30000` was reachable while the deployment was running. Previously saved world/configuration data, including the accepted world-border persistence check, was preserved; its original PVC remains `Bound` while stopped.
+- Generic `custom-web-01` completed live acceptance as RIFTGRID `RUNNING`, pod `1/1 Ready`, 0 restarts, and HTTP 200 on `localhost:30001`. A later authenticated `STOP_SERVER` task completed successfully; its existing StatefulSet is `0/0` and its original 5 GiB PVC remains `Bound`.
 - Managed MariaDB acceptance completed through RIFTGRID: `test-db` was provisioned, reached `RUNNING`, and was then stopped through the normal UI action. StatefulSet `db-8600c5ea-61c` is intentionally scaled to 0 and its original 5 GiB PVC remains `Bound`.
 - A real Minecraft archive `rg-73ae6d88-13e-63327387-e1a9-41b1-b950-97744703932b.tar.gz` completed as `AVAILABLE` at 222.3 MiB with SHA-256 `8fec1695656efde6cd236168148d1951ae817ef630532ac8e3a7138ebe04b8af` on the bound 10 GiB backup claim `bk-rg-73ae6d88-13e`.
 - The initial archive attempt exposed read permissions on mode-0600 Minecraft files. The backup job was narrowed to `DAC_READ_SEARCH`, a second real backup succeeded, and Minecraft returned to `RUNNING`; no source PVC was replaced.
@@ -55,25 +60,36 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 - After the landing-page and live-overview fixes, quality gates ran sequentially and passed: typecheck 12/12 tasks; lint 12/12 tasks; tests 21/21 tasks with 25 assertions; build 12/12 tasks with 22 application pages generated.
 - The production build used Next.js's supported WASM fallback because the optional native Windows SWC DLL could not load; the build completed successfully.
 - The public `/` route, all supplied static assets, and the existing `/dashboard` were verified live. Browser console errors: 0. Node workload counts report `1`, `1`, and `0` for the two agents and control-plane node.
+- FiveM `riftgrid-fivem` completed live acceptance as RIFTGRID `RUNNING`, pod `1/1 Ready`, 0 restarts, with 0/48 players and 82 started resources. A later authenticated `STOP_SERVER` task completed successfully; its existing StatefulSet is `0/0`, endpoints remain allocated, and the original 21 GiB PVC remains `Bound`.
+- Installer/template milestone: migration `0004_template_revisions` applied; existing `minecraft-standard` is revision 1; history and template-to-deploy hydration were verified live; FiveM installer detail resolves build 25770, seven adapter capabilities, three default ports, and its real deployment usage. No deployment or restore task was created.
+- Post-milestone quality gates passed sequentially: typecheck 12/12, lint 12/12, tests 21/21 tasks, build 12/12 with 23 application pages including `/dashboard/installers/[id]`.
+- Three authenticated stop requests arrived after acceptance (FiveM, Custom OCI, then Minecraft) and completed normally. They were not crash/restart events and did not delete or replace workloads or storage; all game, database, and backup PVCs remain `Bound`. The current audit schema records actor and action but not HTTP client provenance, so the initiating browser/client cannot be identified more narrowly after the fact.
+- Rust and Valheim installer manifests now report `READY`, their configuration forms were verified live, and `riftgrid/rust-server:0.1.0` plus `riftgrid/valheim-server:0.1.0` were built successfully and imported into all three existing k3d nodes. No Rust/Valheim deployment, task, Service, StatefulSet or PVC was created during this work.
+- Post-Rust/Valheim quality gates passed sequentially: typecheck 12/12, lint 12/12, tests 21/21 tasks including 11 Installer SDK assertions, and build 12/12 with 22 application routes.
+- A separate authenticated client concurrently created `test-mc`, reached `RUNNING`, and then stopped it through normal RIFTGRID tasks. Its StatefulSet is `0/0` and its independently created 10 GiB PVC is `Bound`; it was not part of the Rust/Valheim acceptance and was left untouched.
 
 ## BLOCKED
 
-- **REQUIRED:** A Cfx.re server registration/license key stored in a Kubernetes Secret.
-- **WHY:** FiveM requires the key to register and start a real server. RIFTGRID deliberately does not accept or persist this secret value in deployment configuration or logs.
-- **WHERE TO OBTAIN:** Create/manage a key at `https://portal.cfx.re/` for the intended server/IP and comply with Cfx.re licensing requirements.
-- **WHERE TO ENTER:** Create the Secret in namespace `riftgrid-servers`, then enter only its Secret name and key field in **Deploy Server → FiveM**. Do not paste the secret value into RIFTGRID's ordinary environment-variable fields.
+- No current external dependency blocks the next implementation slice.
 
 ## NEXT
 
-1. Perform the already implemented backup restore acceptance only through the explicit UI action while Minecraft is stopped, then verify the preserved marker and start the existing workload normally.
-2. After the user supplies the Cfx.re credential, create or confirm the Kubernetes Secret without echoing its value.
-3. Deploy FiveM once through **Deploy Server → FiveM**, optionally bind the managed database, and verify task success, pod readiness, persistent storage, UDP/TCP game endpoint, txAdmin onboarding, and an actual client connection.
+1. Add an RBAC-protected, audited Secrets area so FiveM, Rust, Valheim and Custom OCI credentials can be created/rotated through RIFTGRID without exposing stored values.
+2. Move installer-specific wizard presentation metadata into the Installer contract so future installers do not require new page-level conditionals.
+3. Implement the authenticated RIFTGRID FiveM bridge with scoped, audited player/resource/console commands plus a versioned `server.cfg` editor, without depending on private txAdmin routes.
+4. Continue the Minecraft operations surface with real players, properties, worlds, plugins, files and performance slices; the current generic server page does not yet fulfill the full Minecraft management surface.
+5. Implement the safe per-PVC file manager, real utilization telemetry, and the currently modeled but unimplemented migrate/reinstall/delete task handlers.
+6. Replace the dashboard header's visual-only search, notification and profile controls with real behavior.
+7. Perform backup restore acceptance only through the explicit UI action while Minecraft is stopped, verify the preserved marker, and start the existing workload normally.
 
 ## KNOWN LIMITATIONS
 
-- FiveM cannot be accepted end to end without the external Cfx.re credential described above.
 - The FiveM runtime image is currently built/imported locally for this development k3d cluster; it is not yet published to a production registry or pinned by digest.
+- Rust and Valheim runtime images are likewise local development artifacts and are not yet published or digest-pinned. Their first full game-download/start/client acceptance remains pending and requires administrator-created Kubernetes Secrets for WebRCON/server access.
+- FiveM player/resource mutations, interactive console commands, and `server.cfg` writes are intentionally unavailable until the authenticated bridge exists. Read-only runtime inventory and Kubernetes lifecycle operations are real.
+- Installer manifests validate runtime configuration, but the deploy wizard still contains presentation branches for Minecraft, FiveM, and Custom OCI; schema-driven installer UI metadata remains the next Installer Engine refactor.
 - Custom Deployment Secret references require the named Kubernetes Secret to exist in `riftgrid-servers`; RIFTGRID does not create secrets from plaintext in the deployment form.
 - The first failed backup remains visible as diagnostic history; its pre-fix partial archive was created before best-effort failure cleanup existed. It can be removed through the explicit Backups delete action when desired.
 - Live restore acceptance remains pending because it is an explicitly destructive data operation and must only be started through its deliberate UI confirmation while Minecraft is stopped.
+- Global search, notifications/profile actions, server migration/reinstall/delete, file management, server groups/autoscaling, Velocity service discovery and production-grade metrics remain roadmap work; their UI is not presented as completed functionality.
 - NodePort allocation is suitable for the current local development cluster. Production ingress/load-balancing, TLS, observability, CSI-native snapshots, and external PostgreSQL/Redis secret management remain deployment-hardening work.

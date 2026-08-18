@@ -6,13 +6,16 @@ import { RiftgridError } from "@riftgrid/shared";
 
 export const sessionCookie = "riftgrid_session";
 const sessionDurationMs = 1000 * 60 * 60 * 24 * 14;
+const secureSessionCookie = process.env.SESSION_COOKIE_SECURE === undefined
+  ? process.env.NODE_ENV === "production"
+  : process.env.SESSION_COOKIE_SECURE === "true";
 export type AuthUser = { id: string; organizationId: string; email: string; name: string; role: Role };
 
 export function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
 export async function createSession(userId: string, reply: FastifyReply) {
   const token = randomBytes(32).toString("base64url");
   await db.insert(sessions).values({ userId, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + sessionDurationMs) });
-  reply.setCookie(sessionCookie, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: sessionDurationMs / 1000 });
+  reply.setCookie(sessionCookie, token, { httpOnly: true, sameSite: "lax", secure: secureSessionCookie, path: "/", maxAge: sessionDurationMs / 1000 });
 }
 export async function resolveUser(request: FastifyRequest): Promise<AuthUser | null> {
   const token = request.cookies[sessionCookie];

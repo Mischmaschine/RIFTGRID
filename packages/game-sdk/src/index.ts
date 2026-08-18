@@ -40,14 +40,26 @@ export const installerManifestSchema = z.object({
 });
 export type InstallerManifest = z.infer<typeof installerManifestSchema>;
 export interface NetworkPortRequirement { name: string; containerPort: number; protocol: "TCP" | "UDP"; public: boolean; }
-export interface WorkloadProbe {
-  kind: "tcp" | "http";
+export type WorkloadProbe = {
+  kind: "tcp";
+  port: number;
+  initialDelaySeconds: number;
+  periodSeconds: number;
+  failureThreshold: number;
+} | {
+  kind: "http";
   port: number;
   path?: string;
   initialDelaySeconds: number;
   periodSeconds: number;
   failureThreshold: number;
-}
+} | {
+  kind: "process";
+  command: string[];
+  initialDelaySeconds: number;
+  periodSeconds: number;
+  failureThreshold: number;
+};
 export interface GameServerDefinition {
   image: string;
   command?: string[];
@@ -59,7 +71,7 @@ export interface GameServerDefinition {
   resources: ResourceRequest;
   probe: WorkloadProbe;
   shutdownGraceSeconds: number;
-  security: { runAsNonRoot: boolean; readOnlyRootFilesystem: boolean; };
+  security: { runAsNonRoot: boolean; readOnlyRootFilesystem: boolean; additionalCapabilities?: Array<"DAC_OVERRIDE" | "FOWNER">; };
 }
 export interface Installer<TConfiguration = unknown> {
   manifest(): InstallerManifest;
@@ -205,7 +217,7 @@ export const fiveMConfigurationSchema = z.object({
   txAdminPort: z.number().int().min(1024).max(65535).default(40120),
   serverProfile: z.string().regex(/^[a-zA-Z0-9_-]+$/).default("default"),
   licenseSecretName: z.string().regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
-  licenseSecretKey: z.string().min(1).max(253).default("license-key"),
+  licenseSecretKey: z.string().min(1).max(253).regex(/^[A-Za-z0-9._-]+$/).refine((value) => !value.toLowerCase().startsWith("cfxk_"), "Enter the Kubernetes Secret data-key name, not the Cfx.re license value.").default("license-key"),
   database: z.object({
     host: z.string().min(1).max(253),
     port: z.number().int().min(1).max(65535).default(3306),
@@ -274,7 +286,7 @@ export class FiveMInstaller implements Installer<FiveMConfiguration> {
       dataMountPath: "/data", resources,
       probe: { kind: "http", port: configuration.txAdminPort, path: "/", initialDelaySeconds: 20, periodSeconds: 5, failureThreshold: 120 },
       shutdownGraceSeconds: 120,
-      security: { runAsNonRoot: false, readOnlyRootFilesystem: false },
+      security: { runAsNonRoot: false, readOnlyRootFilesystem: false, additionalCapabilities: ["DAC_OVERRIDE", "FOWNER"] },
     };
   }
 }
@@ -289,6 +301,133 @@ export class FiveMAdapter implements GameAdapter {
     if (/txAdmin.*started|server license key authentication succeeded/i.test(line)) return { type: "server.ready", data: {} };
     return null;
   }
+  gracefulStopCommand() { return ["sh", "-c", "kill -TERM 1"]; }
+  consoleCommand(_command: string) { return null; }
+}
+
+const kubernetesSecretName = z.string().regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/);
+const kubernetesSecretKey = z.string().min(1).max(253).regex(/^[A-Za-z0-9._-]+$/);
+
+export const rustConfigurationSchema = z.object({
+  serverName: z.string().min(3).max(80),
+  description: z.string().max(500).default("A RIFTGRID Rust server"),
+  identity: z.string().regex(/^[a-z0-9][a-z0-9-]{1,31}$/).default("riftgrid"),
+  branch: z.enum(["public", "staging"]).default("public"),
+  worldSeed: z.number().int().min(0).max(2147483647).default(12345),
+  worldSize: z.number().int().min(1000).max(6000).default(3500),
+  maxPlayers: z.number().int().min(1).max(500).default(50),
+  gamePort: z.number().int().min(1024).max(65460).default(28015),
+  queryPort: z.number().int().min(1024).max(65535).default(28017),
+  rconPort: z.number().int().min(1024).max(65535).default(28016),
+  companionPort: z.number().int().min(10000).max(65535).default(28082),
+  rconSecretName: kubernetesSecretName,
+  rconSecretKey: kubernetesSecretKey.default("password"),
+}).superRefine((configuration, context) => {
+  const ports = [configuration.gamePort, configuration.queryPort, configuration.rconPort, configuration.companionPort];
+  if (new Set(ports).size !== ports.length) context.addIssue({ code: z.ZodIssueCode.custom, path: ["gamePort"], message: "Rust game, query, RCON and companion ports must be distinct." });
+});
+export type RustConfiguration = z.infer<typeof rustConfigurationSchema>;
+
+export const rustInstallerManifest: InstallerManifest = {
+  apiVersion: "riftgrid.io/v1alpha1",
+  kind: "Installer",
+  metadata: { id: "rust", name: "Rust", version: "1.0.0", description: "Install and operate the official Rust Dedicated server through SteamCMD with persistent worlds and Secret-backed RCON.", icon: "shield", provenance: "RIFTGRID_OFFICIAL", verified: true },
+  spec: {
+    status: "READY", category: "FEATURED", adapterId: "rust",
+    runtimes: [{ id: "STEAMCMD", name: "Rust Dedicated", description: "Official Linux server, Steam App 258550." }],
+    features: ["Official SteamCMD delivery", "Public or staging branch", "Persistent worlds and identity", "Secret-backed WebRCON", "Rust+ companion endpoint"],
+    delivery: ["CONTAINER_IMAGE", "STEAMCMD"], storage: { persistent: true, mountPath: "/data" },
+    network: [{ name: "game", protocol: "UDP", containerPort: 28015 }, { name: "query", protocol: "UDP", containerPort: 28017 }, { name: "rcon", protocol: "TCP", containerPort: 28016 }, { name: "companion", protocol: "TCP", containerPort: 28082 }],
+    health: ["TCP", "PROCESS"],
+  },
+};
+
+export class RustInstaller implements Installer<RustConfiguration> {
+  manifest() { return rustInstallerManifest; }
+  configurationSchema() { return rustConfigurationSchema; }
+  async supportedVersions(): Promise<GameVersion[]> { return [{ id: "public", label: "Public (stable)", stable: true }, { id: "staging", label: "Staging", stable: false }]; }
+  async createServerDefinition(input: RustConfiguration, resources: ResourceRequest): Promise<GameServerDefinition> {
+    const configuration = rustConfigurationSchema.parse(input);
+    return {
+      image: process.env.RUST_RUNTIME_IMAGE ?? "riftgrid/rust-server:0.1.0",
+      environment: {
+        SERVER_NAME: configuration.serverName, SERVER_DESCRIPTION: configuration.description, SERVER_IDENTITY: configuration.identity, STEAM_BRANCH: configuration.branch,
+        WORLD_SEED: String(configuration.worldSeed), WORLD_SIZE: String(configuration.worldSize), MAX_PLAYERS: String(configuration.maxPlayers), GAME_PORT: String(configuration.gamePort),
+        QUERY_PORT: String(configuration.queryPort), RCON_PORT: String(configuration.rconPort), COMPANION_PORT: String(configuration.companionPort),
+      },
+      secretEnvironment: [{ name: "RCON_PASSWORD", secretName: configuration.rconSecretName, key: configuration.rconSecretKey }],
+      ports: [
+        { name: "game", containerPort: configuration.gamePort, protocol: "UDP", public: true },
+        { name: "query", containerPort: configuration.queryPort, protocol: "UDP", public: true },
+        { name: "rcon", containerPort: configuration.rconPort, protocol: "TCP", public: false },
+        { name: "companion", containerPort: configuration.companionPort, protocol: "TCP", public: true },
+      ],
+      dataMountPath: "/data", resources,
+      probe: { kind: "tcp", port: configuration.rconPort, initialDelaySeconds: 30, periodSeconds: 10, failureThreshold: 90 },
+      shutdownGraceSeconds: 120,
+      security: { runAsNonRoot: false, readOnlyRootFilesystem: false, additionalCapabilities: ["DAC_OVERRIDE", "FOWNER"] },
+    };
+  }
+}
+
+export class RustAdapter implements GameAdapter {
+  metadata() { return { id: "rust", name: "Rust", description: "Rust Dedicated health, lifecycle and read-only console intelligence.", icon: "shield" }; }
+  capabilities() { return new Set(["console", "performance"] as const); }
+  evaluateHealth(pod: { phase?: string; ready: boolean; message?: string }): GameHealth { return { healthy: pod.phase === "Running" && pod.ready, ready: pod.ready, message: pod.ready ? "Rust WebRCON readiness check passed" : (pod.message ?? `Pod phase: ${pod.phase ?? "unknown"}`) }; }
+  parseConsole(line: string): GameEvent | null { return /Server startup complete/i.test(line) ? { type: "server.ready", data: {} } : null; }
+  gracefulStopCommand() { return ["sh", "-c", "kill -TERM 1"]; }
+  consoleCommand(_command: string) { return null; }
+}
+
+export const valheimConfigurationSchema = z.object({
+  serverName: z.string().min(3).max(64),
+  worldName: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9 _-]{1,47}$/).default("Dedicated"),
+  gamePort: z.number().int().min(1024).max(65534).default(2456),
+  public: z.boolean().default(true),
+  crossplay: z.boolean().default(false),
+  passwordSecretName: kubernetesSecretName,
+  passwordSecretKey: kubernetesSecretKey.default("password"),
+});
+export type ValheimConfiguration = z.infer<typeof valheimConfigurationSchema>;
+
+export const valheimInstallerManifest: InstallerManifest = {
+  apiVersion: "riftgrid.io/v1alpha1",
+  kind: "Installer",
+  metadata: { id: "valheim", name: "Valheim", version: "1.0.0", description: "Install the official Valheim Dedicated Server through SteamCMD with persistent worlds and Secret-backed access.", icon: "mountain", provenance: "RIFTGRID_OFFICIAL", verified: true },
+  spec: {
+    status: "READY", category: "FEATURED", adapterId: "valheim",
+    runtimes: [{ id: "STEAMCMD", name: "Valheim Dedicated Server", description: "Official Linux server, Steam App 896660." }],
+    features: ["Official SteamCMD delivery", "Persistent world saves", "Secret-backed server password", "Public/private listing", "Optional crossplay backend"],
+    delivery: ["CONTAINER_IMAGE", "STEAMCMD"], storage: { persistent: true, mountPath: "/data" },
+    network: [{ name: "game", protocol: "UDP", containerPort: 2456 }, { name: "query", protocol: "UDP", containerPort: 2457 }],
+    health: ["PROCESS"],
+  },
+};
+
+export class ValheimInstaller implements Installer<ValheimConfiguration> {
+  manifest() { return valheimInstallerManifest; }
+  configurationSchema() { return valheimConfigurationSchema; }
+  async supportedVersions(): Promise<GameVersion[]> { return [{ id: "public", label: "Public (stable)", stable: true }]; }
+  async createServerDefinition(input: ValheimConfiguration, resources: ResourceRequest): Promise<GameServerDefinition> {
+    const configuration = valheimConfigurationSchema.parse(input);
+    return {
+      image: process.env.VALHEIM_RUNTIME_IMAGE ?? "riftgrid/valheim-server:0.1.0",
+      environment: { SERVER_NAME: configuration.serverName, WORLD_NAME: configuration.worldName, GAME_PORT: String(configuration.gamePort), PUBLIC_SERVER: configuration.public ? "1" : "0", CROSSPLAY: configuration.crossplay ? "1" : "0" },
+      secretEnvironment: [{ name: "SERVER_PASSWORD", secretName: configuration.passwordSecretName, key: configuration.passwordSecretKey }],
+      ports: [{ name: "game", containerPort: configuration.gamePort, protocol: "UDP", public: true }, { name: "query", containerPort: configuration.gamePort + 1, protocol: "UDP", public: true }],
+      dataMountPath: "/data", resources,
+      probe: { kind: "process", command: ["sh", "-c", "test -x /data/server/valheim_server.x86_64 && grep -qa valheim_server /proc/1/cmdline"], initialDelaySeconds: 30, periodSeconds: 10, failureThreshold: 90 },
+      shutdownGraceSeconds: 120,
+      security: { runAsNonRoot: false, readOnlyRootFilesystem: false, additionalCapabilities: ["DAC_OVERRIDE", "FOWNER"] },
+    };
+  }
+}
+
+export class ValheimAdapter implements GameAdapter {
+  metadata() { return { id: "valheim", name: "Valheim", description: "Valheim Dedicated health, lifecycle and read-only console intelligence.", icon: "mountain" }; }
+  capabilities() { return new Set(["console", "performance"] as const); }
+  evaluateHealth(pod: { phase?: string; ready: boolean; message?: string }): GameHealth { return { healthy: pod.phase === "Running" && pod.ready, ready: pod.ready, message: pod.ready ? "Valheim process readiness check passed" : (pod.message ?? `Pod phase: ${pod.phase ?? "unknown"}`) }; }
+  parseConsole(line: string): GameEvent | null { return /Game server connected|Game server registered/i.test(line) ? { type: "server.ready", data: {} } : null; }
   gracefulStopCommand() { return ["sh", "-c", "kill -TERM 1"]; }
   consoleCommand(_command: string) { return null; }
 }

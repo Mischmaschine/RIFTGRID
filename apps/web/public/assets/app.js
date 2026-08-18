@@ -430,6 +430,26 @@ if(chapters.length){
   });
 })();
 
+// Copy the public installer command without storing clipboard or analytics data.
+(() => {
+  document.querySelectorAll('[data-copy-target]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const target=document.getElementById(button.dataset.copyTarget);
+      if(!target)return;
+      const value=target.textContent.trim();
+      try {
+        await navigator.clipboard.writeText(value);
+      } catch {
+        const area=document.createElement('textarea');
+        area.value=value;area.style.position='fixed';area.style.opacity='0';
+        document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();
+      }
+      const original=button.textContent;button.textContent='COPIED';
+      setTimeout(()=>{button.textContent=original;},1600);
+    });
+  });
+})();
+
 
 // =========================
 // RIFTGRID V6 — Universal deployment scroll

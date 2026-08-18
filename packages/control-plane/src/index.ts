@@ -21,18 +21,23 @@ export class ControlPlane {
     const serverRows = await db.select().from(servers);
     for (const original of serverRows) {
       let server = original;
+      let driftDetected = false;
       if (server.actualState === "RUNNING") {
         const observation = await this.kubernetes.observePod(namespace, server.kubernetesName);
         const health = this.adapters.get(server.adapterId).evaluateHealth(observation);
         if (!health.healthy) {
           await db.update(servers).set({ actualState: "FAILED", lastErrorCode: "NODE_UNAVAILABLE", lastErrorMessage: health.message, updatedAt: new Date() }).where(eq(servers.id, server.id));
           server = { ...server, actualState: "FAILED", lastErrorCode: "NODE_UNAVAILABLE", lastErrorMessage: health.message };
+          driftDetected = true;
           await this.activity(server, "server.drift", `${server.name} health drift detected`, { observation, desiredState: server.desiredState });
         }
       }
       const converged = server.desiredState === "RUNNING" ? server.actualState === "RUNNING" : server.actualState === "STOPPED";
       const transitional = ["SCHEDULING", "INSTALLING", "STARTING", "STOPPING", "BACKING_UP", "RESTORING", "MIGRATING"].includes(server.actualState);
       if (converged || transitional) continue;
+      // A failed reconciliation needs an explicit retry. Retrying it every scan interval
+      // creates an unbounded task flood while the underlying configuration stays invalid.
+      if (server.actualState === "FAILED" && !driftDetected) continue;
       const [active] = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.serverId, server.id), inArray(tasks.status, ["QUEUED", "RUNNING"]))).limit(1);
       if (active) continue;
       const taskId = randomUUID();
@@ -101,7 +106,7 @@ export class ControlPlane {
         else throw new RiftgridError("CONFLICT", `Task ${task.type} is not implemented in this milestone`, 409);
         await this.progress(task, 100, "COMPLETED", "SUCCESS");
       } catch (error) {
-        const failure = error instanceof RiftgridError ? error : new RiftgridError("INTERNAL_ERROR", error instanceof Error ? error.message : "Unknown worker error", 500);
+        const failure = error instanceof RiftgridError ? error : new RiftgridError("INTERNAL_ERROR", describeError(error), 500);
         await db.update(tasks).set({ status: "FAILED", errorCode: failure.code, errorMessage: failure.message, finishedAt: new Date() }).where(eq(tasks.id, task.id));
         if (task.type !== "BACKUP_SERVER" && task.type !== "RESTORE_SERVER") await db.update(servers).set({ actualState: "FAILED", lastErrorCode: failure.code, lastErrorMessage: failure.message, updatedAt: new Date() }).where(eq(servers.id, server.id));
         await this.publish({ type: "task.failed", taskId: task.id, serverId: server.id, error: { code: failure.code, message: failure.message } });
@@ -279,7 +284,8 @@ export class ControlPlane {
       if (existing) { result.push({ ...request, port: existing.port }); continue; }
       let allocated = false;
       for (let attempt = 0; attempt < end - start + 1 && !allocated; attempt += 1) {
-        const usedRows = await db.select({ port: portAllocations.port }).from(portAllocations).where(eq(portAllocations.protocol, request.protocol));
+        // Kubernetes NodePorts are allocated cluster-wide, including across protocols.
+        const usedRows = await db.select({ port: portAllocations.port }).from(portAllocations);
         const port = chooseAvailablePort(new Set(usedRows.map((row) => row.port)), start, end);
         try { await db.insert(portAllocations).values({ serverId: server.id, nodeId, port, protocol: request.protocol, purpose: request.name }); result.push({ ...request, port }); allocated = true; } catch (error: any) { if (error?.code !== "23505") throw error; }
       }
@@ -298,6 +304,15 @@ export class ControlPlane {
     await this.publish({ type, serverId: server.id, message, metadata });
   }
   private async publish(payload: unknown) { const redis = redisConnection(); try { await redis.publish(progressChannel, JSON.stringify(payload)); } finally { redis.disconnect(); } }
+}
+
+function describeError(error: unknown): string {
+  const candidate = error as { message?: unknown; body?: unknown; response?: { body?: unknown } } | null;
+  for (const body of [candidate?.body, candidate?.response?.body]) {
+    if (typeof body === "string" && body.trim()) return body;
+    if (body && typeof body === "object" && "message" in body && typeof body.message === "string" && body.message.trim()) return body.message;
+  }
+  return error instanceof Error ? error.message : "Unknown worker error";
 }
 
 function nextScheduleTime(schedule: string, from: Date): Date {

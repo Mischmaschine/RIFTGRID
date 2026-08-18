@@ -4,6 +4,8 @@
   "entries": [
     { "idx": 0, "version": "7", "when": 1786960800000, "tag": "0000_foundation", "breakpoints": true },
     { "idx": 1, "version": "7", "when": 1786996800000, "tag": "0001_installer_identity", "breakpoints": true },
-    { "idx": 2, "version": "7", "when": 1787004000000, "tag": "0002_platform_resources", "breakpoints": true }
+    { "idx": 2, "version": "7", "when": 1787004000000, "tag": "0002_platform_resources", "breakpoints": true },
+    { "idx": 3, "version": "7", "when": 1787018400000, "tag": "0003_global_nodeports", "breakpoints": true },
+    { "idx": 4, "version": "7", "when": 1787025600000, "tag": "0004_template_revisions", "breakpoints": true }
   ]
 }

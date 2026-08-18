@@ -1,7 +1,9 @@
 FROM node:20-bookworm-slim AS build
 ARG APP
+ARG NEXT_PUBLIC_API_URL=http://localhost:4000
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN corepack enable
 WORKDIR /workspace
 COPY . .

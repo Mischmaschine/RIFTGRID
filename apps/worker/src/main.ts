@@ -1,12 +1,12 @@
 import { Worker } from "bullmq";
 import { ControlPlane } from "@riftgrid/control-plane";
 import { MinecraftAdapter, MinecraftInstaller } from "@riftgrid/game-minecraft";
-import { CustomDockerInstaller, FiveMAdapter, FiveMInstaller, GameAdapterRegistry, GenericWorkloadAdapter, InstallerRegistry } from "@riftgrid/game-sdk";
+import { CustomDockerInstaller, FiveMAdapter, FiveMInstaller, GameAdapterRegistry, GenericWorkloadAdapter, InstallerRegistry, RustAdapter, RustInstaller, ValheimAdapter, ValheimInstaller } from "@riftgrid/game-sdk";
 import { KubernetesService } from "@riftgrid/kubernetes";
 import { redisConnection, TASK_QUEUE, type ControlPlaneJob } from "@riftgrid/tasks";
 
-const adapters = new GameAdapterRegistry().register(new MinecraftAdapter()).register(new GenericWorkloadAdapter()).register(new FiveMAdapter());
-const installers = new InstallerRegistry().register(new MinecraftInstaller()).register(new CustomDockerInstaller()).register(new FiveMInstaller());
+const adapters = new GameAdapterRegistry().register(new MinecraftAdapter()).register(new GenericWorkloadAdapter()).register(new FiveMAdapter()).register(new RustAdapter()).register(new ValheimAdapter());
+const installers = new InstallerRegistry().register(new MinecraftInstaller()).register(new CustomDockerInstaller()).register(new FiveMInstaller()).register(new RustInstaller()).register(new ValheimInstaller());
 const controlPlane = new ControlPlane(new KubernetesService(), adapters, installers);
 const worker = new Worker<ControlPlaneJob>(TASK_QUEUE, async (job) => controlPlane.execute(job.data.taskId), { connection: redisConnection(), concurrency: Number(process.env.WORKER_CONCURRENCY ?? 4), lockDuration: 15 * 60 * 1000 });
 worker.on("completed", (job) => console.log(`[worker] completed ${job.id}`));

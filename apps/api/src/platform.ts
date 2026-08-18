@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { hash } from "bcryptjs";
 import { randomBytes, randomUUID } from "node:crypto";
-import { and, activityEvents, backupPolicies, backups, count, db, deploymentTemplates, desc, eq, inArray, managedDatabases, nodes, organizationSettings, projects, servers, sessions, tasks, users } from "@riftgrid/database";
+import { and, activityEvents, backupPolicies, backups, count, db, deploymentTemplateRevisions, deploymentTemplates, desc, eq, inArray, managedDatabases, nodes, organizationSettings, projects, servers, sessions, tasks, users } from "@riftgrid/database";
 import type { InstallerRegistry } from "@riftgrid/game-sdk";
 import type { KubernetesService } from "@riftgrid/kubernetes";
-import { permissions } from "@riftgrid/permissions";
+import { hasPermission, permissions } from "@riftgrid/permissions";
 import { RiftgridError } from "@riftgrid/shared";
 import { enqueueTask } from "@riftgrid/tasks";
 import { z } from "zod";
@@ -27,9 +27,22 @@ export function registerPlatformRoutes(app: FastifyInstance, dependencies: { kub
     const user = await authorize(request, "template.manage"); const body = templateBodySchema.parse(request.body); const project = await ownedProject(user.organizationId);
     const installer = installers.get(body.installerId); const manifest = installer.manifest(); const configuration = installer.configurationSchema().parse(body.configuration);
     const settings = await getSettings(user.organizationId); assertWithinLimits(body.resources, settings);
-    const [created] = await db.insert(deploymentTemplates).values({ projectId: project.id, name: body.name, description: body.description, installerId: manifest.metadata.id, installerVersion: manifest.metadata.version, configuration: configuration as Record<string, unknown>, cpuMillicores: body.resources.cpuMillicores, memoryMiB: body.resources.memoryMiB, storageGiB: body.resources.storageGiB, placement: body.placement, createdBy: user.id }).returning();
+    const created = await db.transaction(async (tx) => {
+      const [template] = await tx.insert(deploymentTemplates).values({ projectId: project.id, name: body.name, description: body.description, installerId: manifest.metadata.id, installerVersion: manifest.metadata.version, configuration: configuration as Record<string, unknown>, cpuMillicores: body.resources.cpuMillicores, memoryMiB: body.resources.memoryMiB, storageGiB: body.resources.storageGiB, placement: body.placement, createdBy: user.id }).returning();
+      if (!template) throw new Error("Template could not be created");
+      await tx.insert(deploymentTemplateRevisions).values(templateRevisionValues(template, user.id));
+      return template;
+    });
     await recordActivity(user.organizationId, project.id, user.id, null, "template.created", `${user.name} created template ${body.name}`, { templateId: created!.id, installerId: body.installerId });
     return reply.code(201).send({ template: created });
+  });
+
+  app.get("/api/v1/templates/:id/revisions", async (request) => {
+    const user = await authenticate(request); const { id } = z.object({ id: z.string().uuid() }).parse(request.params); const projectIds = await ownedProjectIds(user.organizationId);
+    const [template] = projectIds.length ? await db.select().from(deploymentTemplates).where(and(eq(deploymentTemplates.id, id), inArray(deploymentTemplates.projectId, projectIds))).limit(1) : [];
+    if (!template) throw new RiftgridError("NOT_FOUND", "Template not found", 404);
+    const revisions = await db.select().from(deploymentTemplateRevisions).where(eq(deploymentTemplateRevisions.templateId, id)).orderBy(desc(deploymentTemplateRevisions.revision));
+    return { template, revisions };
   });
 
   app.patch("/api/v1/templates/:id", async (request) => {
@@ -39,14 +52,39 @@ export function registerPlatformRoutes(app: FastifyInstance, dependencies: { kub
     let installerId = current.installerId; let installerVersion = current.installerVersion; let configuration = current.configuration;
     if (body.installerId || body.configuration) { const installer = installers.get(body.installerId ?? current.installerId); const manifest = installer.manifest(); installerId = manifest.metadata.id; installerVersion = manifest.metadata.version; configuration = installer.configurationSchema().parse(body.configuration ?? current.configuration) as Record<string, unknown>; }
     const resources = { cpuMillicores: body.resources?.cpuMillicores ?? current.cpuMillicores, memoryMiB: body.resources?.memoryMiB ?? current.memoryMiB, storageGiB: body.resources?.storageGiB ?? current.storageGiB }; assertWithinLimits(resources, await getSettings(user.organizationId));
-    const [updated] = await db.update(deploymentTemplates).set({ ...(body.name ? { name: body.name } : {}), ...(body.description !== undefined ? { description: body.description } : {}), installerId, installerVersion, configuration, ...resources, ...(body.placement ? { placement: body.placement } : {}), updatedAt: new Date() }).where(eq(deploymentTemplates.id, id)).returning();
+    const updated = await db.transaction(async (tx) => {
+      const [template] = await tx.update(deploymentTemplates).set({ ...(body.name ? { name: body.name } : {}), ...(body.description !== undefined ? { description: body.description } : {}), revision: current.revision + 1, installerId, installerVersion, configuration, ...resources, ...(body.placement ? { placement: body.placement } : {}), updatedAt: new Date() }).where(eq(deploymentTemplates.id, id)).returning();
+      if (!template) throw new Error("Template could not be updated");
+      await tx.insert(deploymentTemplateRevisions).values(templateRevisionValues(template, user.id));
+      return template;
+    });
+    await recordActivity(user.organizationId, current.projectId, user.id, null, "template.updated", `${user.name} published revision ${updated.revision} of template ${updated.name}`, { templateId: id, revision: updated.revision });
     return { template: updated };
+  });
+
+  app.post("/api/v1/templates/:id/revisions/:revision/restore", async (request) => {
+    const user = await authorize(request, "template.manage"); const { id, revision } = z.object({ id: z.string().uuid(), revision: z.coerce.number().int().min(1) }).parse(request.params); const projectIds = await ownedProjectIds(user.organizationId);
+    const [current] = projectIds.length ? await db.select().from(deploymentTemplates).where(and(eq(deploymentTemplates.id, id), inArray(deploymentTemplates.projectId, projectIds))).limit(1) : [];
+    if (!current) throw new RiftgridError("NOT_FOUND", "Template not found", 404);
+    const [source] = await db.select().from(deploymentTemplateRevisions).where(and(eq(deploymentTemplateRevisions.templateId, id), eq(deploymentTemplateRevisions.revision, revision))).limit(1);
+    if (!source) throw new RiftgridError("NOT_FOUND", "Template revision not found", 404);
+    const installer = installers.get(source.installerId); installer.configurationSchema().parse(source.configuration); const manifest = installer.manifest();
+    const restored = await db.transaction(async (tx) => {
+      const [template] = await tx.update(deploymentTemplates).set({ name: source.name, description: source.description, revision: current.revision + 1, installerId: manifest.metadata.id, installerVersion: manifest.metadata.version, configuration: source.configuration, cpuMillicores: source.cpuMillicores, memoryMiB: source.memoryMiB, storageGiB: source.storageGiB, placement: source.placement, updatedAt: new Date() }).where(eq(deploymentTemplates.id, id)).returning();
+      if (!template) throw new Error("Template revision could not be restored");
+      await tx.insert(deploymentTemplateRevisions).values(templateRevisionValues(template, user.id));
+      return template;
+    });
+    await recordActivity(user.organizationId, current.projectId, user.id, null, "template.restored", `${user.name} restored revision ${revision} of template ${current.name} as revision ${restored.revision}`, { templateId: id, sourceRevision: revision, revision: restored.revision });
+    return { template: restored };
   });
 
   app.delete("/api/v1/templates/:id", async (request, reply) => {
     const user = await authorize(request, "template.manage"); const { id } = z.object({ id: z.string().uuid() }).parse(request.params); const projectIds = await ownedProjectIds(user.organizationId);
     const [removed] = projectIds.length ? await db.delete(deploymentTemplates).where(and(eq(deploymentTemplates.id, id), inArray(deploymentTemplates.projectId, projectIds))).returning() : [];
-    if (!removed) throw new RiftgridError("NOT_FOUND", "Template not found", 404); return reply.code(204).send();
+    if (!removed) throw new RiftgridError("NOT_FOUND", "Template not found", 404);
+    await recordActivity(user.organizationId, removed.projectId, user.id, null, "template.deleted", `${user.name} deleted template ${removed.name}`, { templateId: removed.id, revision: removed.revision });
+    return reply.code(204).send();
   });
 
   app.get("/api/v1/backups", async (request) => {
@@ -92,7 +130,16 @@ export function registerPlatformRoutes(app: FastifyInstance, dependencies: { kub
     const rows = projectIds.length ? await db.select({ id: managedDatabases.id, name: managedDatabases.name, engine: managedDatabases.engine, databaseName: managedDatabases.databaseName, username: managedDatabases.username, passwordSecretName: managedDatabases.passwordSecretName, host: managedDatabases.host, port: managedDatabases.port, storageGiB: managedDatabases.storageGiB, state: managedDatabases.state, lastError: managedDatabases.lastError, serverId: managedDatabases.serverId, serverName: servers.name, kubernetesName: managedDatabases.kubernetesName, createdAt: managedDatabases.createdAt }).from(managedDatabases).leftJoin(servers, eq(managedDatabases.serverId, servers.id)).where(inArray(managedDatabases.projectId, projectIds)).orderBy(desc(managedDatabases.createdAt)) : [];
     const namespace = process.env.KUBERNETES_NAMESPACE ?? "riftgrid-servers";
     const refreshed = await Promise.all(rows.map(async (row) => { if (row.state === "STOPPED") return row; try { const observation = await kube().observeManagedDatabase(namespace, row.kubernetesName); const state = observation.ready ? "RUNNING" as const : observation.phase === "Failed" ? "FAILED" as const : "PROVISIONING" as const; if (state !== row.state) await db.update(managedDatabases).set({ state, lastError: observation.ready ? null : observation.message ?? null, updatedAt: new Date() }).where(eq(managedDatabases.id, row.id)); return { ...row, state, lastError: observation.ready ? null : observation.message ?? row.lastError }; } catch (error) { return { ...row, state: "FAILED" as const, lastError: error instanceof Error ? error.message : "Kubernetes unavailable" }; } }));
-    return { databases: refreshed };
+    return { databases: refreshed, canReadCredentials: hasPermission(user.role, "database.manage") };
+  });
+
+  app.post("/api/v1/databases/:id/credentials/password", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {
+    const user = await authorize(request, "database.manage"); const { id } = z.object({ id: z.string().uuid() }).parse(request.params); const projectIds = await ownedProjectIds(user.organizationId);
+    const [record] = projectIds.length ? await db.select().from(managedDatabases).where(and(eq(managedDatabases.id, id), inArray(managedDatabases.projectId, projectIds))).limit(1) : [];
+    if (!record) throw new RiftgridError("NOT_FOUND", "Database not found", 404);
+    const password = await kube().readSecretValue(process.env.KUBERNETES_NAMESPACE ?? "riftgrid-servers", record.passwordSecretName, "user-password");
+    await recordActivity(user.organizationId, record.projectId, user.id, record.serverId, "database.credentials-accessed", `${user.name} copied application credentials for ${record.name}`, { databaseId: record.id, secretName: record.passwordSecretName, key: "user-password" });
+    return reply.header("Cache-Control", "no-store, max-age=0").header("Pragma", "no-cache").send({ password });
   });
 
   app.post("/api/v1/databases", async (request, reply) => {
@@ -127,3 +174,4 @@ async function getSettings(organizationId: string) { const [settings] = await db
 function assertWithinLimits(resources: { cpuMillicores: number; memoryMiB: number; storageGiB: number }, settings: Awaited<ReturnType<typeof getSettings>>) { if (resources.cpuMillicores > settings.maximumCpuMillicores || resources.memoryMiB > settings.maximumMemoryMiB || resources.storageGiB > settings.maximumStorageGiB) throw new RiftgridError("CONFLICT", "Requested resources exceed organization limits", 409); }
 async function recordActivity(organizationId: string, projectId: string | null, actorId: string, serverId: string | null, type: string, message: string, metadata: Record<string, unknown>) { await db.insert(activityEvents).values({ organizationId, projectId, actorId, serverId, type, message, metadata }); }
 function nextScheduleTime(schedule: string) { const delay = schedule === "0 */6 * * *" ? 6 * 60 * 60 * 1000 : schedule === "0 3 * * 0" ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000; return new Date(Date.now() + delay); }
+function templateRevisionValues(template: typeof deploymentTemplates.$inferSelect, createdBy: string) { return { templateId: template.id, revision: template.revision, name: template.name, description: template.description, installerId: template.installerId, installerVersion: template.installerVersion, configuration: template.configuration, cpuMillicores: template.cpuMillicores, memoryMiB: template.memoryMiB, storageGiB: template.storageGiB, placement: template.placement, createdBy }; }

@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+RIFTGRID_HOME="${RIFTGRID_HOME:-$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)}"
+COMPOSE_FILE="$RIFTGRID_HOME/infrastructure/docker/compose.install.yml"
+ENV_FILE="$RIFTGRID_HOME/.env"
+
+usage() {
+  cat <<'EOF'
+RIFTGRID management CLI
+
+Usage: riftgrid <command> [service]
+
+  status              Show control-plane and k3d status
+  logs [service]      Follow logs (api, worker, web, postgres, redis)
+  start               Start the RIFTGRID control plane
+  stop                Stop services without deleting data
+  restart             Restart the control plane
+  update              Fast-forward source, migrate, rebuild and restart
+  doctor              Run local installation diagnostics
+  open                Print the dashboard address
+  version             Show the installed source revision
+  help                Show this help
+EOF
+}
+
+if [[ "${1:-help}" == "help" || "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+if [[ ! -f "$COMPOSE_FILE" || ! -f "$ENV_FILE" ]]; then
+  printf 'RIFTGRID installation not found at %s\n' "$RIFTGRID_HOME" >&2
+  exit 1
+fi
+
+compose() {
+  if docker info >/dev/null 2>&1; then
+    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+  else
+    sudo docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+  fi
+}
+
+k3d_command() { if docker info >/dev/null 2>&1; then k3d "$@"; else sudo k3d "$@"; fi; }
+docker_daemon_available() { docker info >/dev/null 2>&1 || sudo docker info >/dev/null 2>&1; }
+
+dashboard_url() {
+  local host
+  host="$(sed -n 's/^RIFTGRID_PUBLIC_HOST=//p' "$ENV_FILE" | tail -n 1)"
+  printf 'http://%s:3000\n' "${host:-localhost}"
+}
+
+cluster_name() {
+  local name
+  name="$(sed -n 's/^RIFTGRID_CLUSTER_NAME=//p' "$ENV_FILE" | tail -n 1)"
+  printf '%s' "${name:-riftgrid}"
+}
+
+case "${1:-help}" in
+  status)
+    compose ps
+    printf '\nKubernetes cluster:\n'
+    k3d_command cluster list
+    ;;
+  logs)
+    compose logs --tail=200 -f "${2:-api}"
+    ;;
+  start)
+    compose up -d postgres redis api worker web
+    ;;
+  stop)
+    compose stop api worker web
+    ;;
+  restart)
+    compose restart api worker web
+    ;;
+  update)
+    if [[ -n "$(git -C "$RIFTGRID_HOME" status --porcelain)" ]]; then
+      printf 'Update stopped: %s contains local changes.\n' "$RIFTGRID_HOME" >&2
+      exit 1
+    fi
+    git -C "$RIFTGRID_HOME" pull --ff-only
+    compose build api worker web migrate
+    compose run --rm migrate
+    compose up -d api worker web
+    ;;
+  doctor)
+    failures=0
+    for command in docker git curl openssl k3d; do
+      if command -v "$command" >/dev/null 2>&1; then
+        printf '[ok] %s\n' "$command"
+      else
+        printf '[missing] %s\n' "$command"
+        failures=$((failures + 1))
+      fi
+    done
+    if docker_daemon_available; then printf '[ok] Docker daemon\n'; else printf '[failed] Docker daemon\n'; failures=$((failures + 1)); fi
+    if k3d_command cluster list | grep -q "$(cluster_name)"; then printf '[ok] k3d cluster\n'; else printf '[failed] k3d cluster\n'; failures=$((failures + 1)); fi
+    if curl -fsS http://127.0.0.1:4000/health >/dev/null; then printf '[ok] API health\n'; else printf '[failed] API health\n'; failures=$((failures + 1)); fi
+    if curl -fsS http://127.0.0.1:3000/login >/dev/null; then printf '[ok] Web UI\n'; else printf '[failed] Web UI\n'; failures=$((failures + 1)); fi
+    exit "$failures"
+    ;;
+  open)
+    dashboard_url
+    ;;
+  version)
+    git -C "$RIFTGRID_HOME" describe --always --dirty
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    printf 'Unknown command: %s\n\n' "$1" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

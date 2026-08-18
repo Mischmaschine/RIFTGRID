@@ -8,6 +8,16 @@
 - Docker Desktop or another container runtime
 - A reachable Kubernetes cluster and current kubeconfig
 
+## Guided installation
+
+On a clean x86-64 Linux host:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Mischmaschine/RIFTGRID/main/install.sh | bash
+```
+
+The terminal wizard configures an isolated k3d cluster and the complete control plane. It preserves an existing RIFTGRID installation and persistent data when re-run.
+
 ## Local development
 
 ```powershell
@@ -31,4 +41,4 @@ Open `http://localhost:3000`. Use `pnpm cluster:dev` to create an isolated local
 
 Minecraft requires acceptance of its EULA. FiveM additionally requires a Cfx.re license key stored in an existing Kubernetes Secret.
 
-Detailed guides: [Installation](https://github.com/Mischmaschine/RIFTGRID/blob/main/docs/installation.md) · [Development](https://github.com/Mischmaschine/RIFTGRID/blob/main/docs/development.md) · [Kubernetes](https://github.com/Mischmaschine/RIFTGRID/blob/main/docs/kubernetes.md)
+Detailed guides: [Installation](https://github.com/Mischmaschine/RIFTGRID/blob/main/docs/installation.md) · [Guided installer](https://github.com/Mischmaschine/RIFTGRID/blob/main/docs/installer.md) · [Development](https://github.com/Mischmaschine/RIFTGRID/blob/main/docs/development.md) · [Kubernetes](https://github.com/Mischmaschine/RIFTGRID/blob/main/docs/kubernetes.md)

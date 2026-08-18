@@ -1,0 +1,111 @@
+name: riftgrid
+
+x-control-plane: &control-plane
+  restart: unless-stopped
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  environment: &control-plane-environment
+    DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+    REDIS_URL: redis://redis:6379
+    KUBECONFIG: /root/.kube/config
+    KUBERNETES_NAMESPACE: ${KUBERNETES_NAMESPACE:-riftgrid-servers}
+    GAME_PUBLIC_HOST: ${GAME_PUBLIC_HOST:?GAME_PUBLIC_HOST is required}
+    PORT_RANGE_START: ${PORT_RANGE_START:-30000}
+    PORT_RANGE_END: ${PORT_RANGE_END:-30100}
+  volumes:
+    - ${RIFTGRID_KUBECONFIG:?RIFTGRID_KUBECONFIG is required}:/root/.kube/config:ro
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: riftgrid
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: riftgrid
+    volumes:
+      - riftgrid-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U riftgrid"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - riftgrid-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+      args:
+        APP: api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+    command: ["pnpm", "--filter", "@riftgrid/database", "migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *control-plane
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+      args:
+        APP: api
+    environment:
+      <<: *control-plane-environment
+      API_PORT: 4000
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      WEB_ORIGIN: ${WEB_ORIGIN:?WEB_ORIGIN is required}
+    ports:
+      - "${RIFTGRID_BIND_ADDRESS:-0.0.0.0}:4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    <<: *control-plane
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+      args:
+        APP: worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    restart: unless-stopped
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+      args:
+        APP: web
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
+    environment:
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
+    ports:
+      - "${RIFTGRID_BIND_ADDRESS:-0.0.0.0}:3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  riftgrid-postgres:
+  riftgrid-redis:

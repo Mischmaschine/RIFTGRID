@@ -3,8 +3,10 @@ import { PassThrough } from "node:stream";
 import type { GameServerDefinition } from "@riftgrid/game-sdk";
 import type { NodeCandidate } from "@riftgrid/shared";
 import { bytesToGiB, bytesToMiB, parseBytes, parseCpuMillicores } from "./quantity.js";
+import { cleanLogText } from "./logs.js";
 
 export * from "./quantity.js";
+export * from "./logs.js";
 
 export interface ProvisionRequest {
   serverId: string;
@@ -16,7 +18,7 @@ export interface ProvisionRequest {
   storageClassName?: string;
 }
 
-export interface PodObservation { podName?: string; phase?: string; ready: boolean; message?: string; }
+export interface PodObservation { podName?: string; phase?: string; ready: boolean; message?: string; startedAt?: string; restartCount?: number; nodeName?: string; }
 export interface StorageClaimObservation { name: string; phase: string; capacityGiB: number; storageClassName: string | null; volumeName: string | null; serverId: string | null; }
 export interface StorageInventory {
   claims: Array<StorageClaimObservation & { accessModes: string[]; provider: string; volumePhase: string | null }>;
@@ -37,6 +39,7 @@ export interface KubernetesGateway {
   createBackup(namespace: string, sourceClaim: string, nodeName: string, archiveName: string, storageGiB: number): Promise<BackupArchiveResult>;
   restoreBackup(namespace: string, sourceClaim: string, nodeName: string, archiveName: string, storageGiB: number): Promise<void>;
   deleteBackup(namespace: string, sourceClaim: string, nodeName: string, archiveName: string, storageGiB: number): Promise<void>;
+  readSecretValue(namespace: string, name: string, key: string): Promise<string>;
 }
 
 function workloadLabels(serverId: string, name: string) { return { "app.kubernetes.io/name": "riftgrid-world", "app.kubernetes.io/managed-by": "riftgrid", "riftgrid.io/server-id": serverId, "riftgrid.io/workload": name }; }
@@ -107,6 +110,13 @@ export class KubernetesService implements KubernetesGateway {
       volumeName: claim.spec?.volumeName ?? null,
       serverId: claim.metadata?.labels?.["riftgrid.io/server-id"] ?? null,
     }));
+  }
+
+  async readSecretValue(namespace: string, name: string, key: string): Promise<string> {
+    const secret = await this.core.readNamespacedSecret(name, namespace);
+    const encoded = secret.body.data?.[key];
+    if (!encoded) throw new Error(`Kubernetes Secret "${name}" does not contain data key "${key}".`);
+    return Buffer.from(encoded, "base64").toString("utf8");
   }
 
   async storageOverview(namespace: string): Promise<StorageInventory> {
@@ -211,6 +221,7 @@ export class KubernetesService implements KubernetesGateway {
 
   async ensureWorkload(request: ProvisionRequest): Promise<void> {
     await this.ensureNamespace(request.namespace);
+    await this.validateSecretReferences(request.namespace, request.definition.secretEnvironment ?? []);
     const labels = workloadLabels(request.serverId, request.kubernetesName);
     const pvc: V1PersistentVolumeClaim = { apiVersion: "v1", kind: "PersistentVolumeClaim", metadata: { name: request.kubernetesName, namespace: request.namespace, labels }, spec: { accessModes: ["ReadWriteOnce"], resources: { requests: { storage: `${request.definition.resources.storageGiB}Gi` } }, ...(request.storageClassName ? { storageClassName: request.storageClassName } : {}) } };
     const service: V1Service = { apiVersion: "v1", kind: "Service", metadata: { name: request.kubernetesName, namespace: request.namespace, labels }, spec: { type: process.env.MINECRAFT_SERVICE_TYPE ?? "NodePort", selector: labels, ports: request.publicPorts.map((port) => ({ name: port.name, port: port.containerPort, targetPort: port.containerPort, nodePort: port.port, protocol: port.protocol })) } };
@@ -219,7 +230,7 @@ export class KubernetesService implements KubernetesGateway {
       apiVersion: "apps/v1", kind: "StatefulSet", metadata: { name: request.kubernetesName, namespace: request.namespace, labels },
       spec: { serviceName: request.kubernetesName, replicas: 1, selector: { matchLabels: labels }, template: { metadata: { labels }, spec: {
         nodeSelector: { "kubernetes.io/hostname": request.nodeName }, terminationGracePeriodSeconds: definition.shutdownGraceSeconds,
-        securityContext: { seccompProfile: { type: "RuntimeDefault" } }, containers: [{ name: "game", image: definition.image, imagePullPolicy: "IfNotPresent", ...(definition.command ? { command: definition.command } : {}), ...(definition.args ? { args: definition.args } : {}), env: [...Object.entries(definition.environment).map(([name, value]) => ({ name, value })), ...(definition.secretEnvironment ?? []).map((reference) => ({ name: reference.name, valueFrom: { secretKeyRef: { name: reference.secretName, key: reference.key } } }))], ports: definition.ports.map((port) => ({ name: port.name, containerPort: port.containerPort, protocol: port.protocol })), volumeMounts: [{ name: "data", mountPath: definition.dataMountPath }], resources: { requests: { cpu: `${definition.resources.cpuMillicores}m`, memory: `${definition.resources.memoryMiB}Mi` }, limits: { cpu: `${definition.resources.cpuMillicores}m`, memory: `${definition.resources.memoryMiB}Mi` } }, securityContext: { allowPrivilegeEscalation: false, privileged: false, readOnlyRootFilesystem: definition.security.readOnlyRootFilesystem, capabilities: { drop: ["ALL"], ...(!definition.security.runAsNonRoot ? { add: ["CHOWN", "SETUID", "SETGID"] } : {}) }, ...(definition.security.runAsNonRoot ? { runAsNonRoot: true } : {}) }, readinessProbe: definition.probe.kind === "tcp" ? { tcpSocket: { port: definition.probe.port }, initialDelaySeconds: definition.probe.initialDelaySeconds, periodSeconds: definition.probe.periodSeconds, failureThreshold: definition.probe.failureThreshold } : { httpGet: { port: definition.probe.port, path: definition.probe.path ?? "/" }, initialDelaySeconds: definition.probe.initialDelaySeconds, periodSeconds: definition.probe.periodSeconds, failureThreshold: definition.probe.failureThreshold } }], volumes: [{ name: "data", persistentVolumeClaim: { claimName: request.kubernetesName } }],
+        securityContext: { seccompProfile: { type: "RuntimeDefault" } }, containers: [{ name: "game", image: definition.image, imagePullPolicy: "IfNotPresent", ...(definition.command ? { command: definition.command } : {}), ...(definition.args ? { args: definition.args } : {}), env: [...Object.entries(definition.environment).map(([name, value]) => ({ name, value })), ...(definition.secretEnvironment ?? []).map((reference) => ({ name: reference.name, valueFrom: { secretKeyRef: { name: reference.secretName, key: reference.key } } }))], ports: definition.ports.map((port) => ({ name: port.name, containerPort: port.containerPort, protocol: port.protocol })), volumeMounts: [{ name: "data", mountPath: definition.dataMountPath }], resources: { requests: { cpu: `${definition.resources.cpuMillicores}m`, memory: `${definition.resources.memoryMiB}Mi` }, limits: { cpu: `${definition.resources.cpuMillicores}m`, memory: `${definition.resources.memoryMiB}Mi` } }, securityContext: { allowPrivilegeEscalation: false, privileged: false, readOnlyRootFilesystem: definition.security.readOnlyRootFilesystem, capabilities: { drop: ["ALL"], ...(!definition.security.runAsNonRoot ? { add: ["CHOWN", "SETUID", "SETGID", ...(definition.security.additionalCapabilities ?? [])] } : {}) }, ...(definition.security.runAsNonRoot ? { runAsNonRoot: true } : {}) }, readinessProbe: definition.probe.kind === "tcp" ? { tcpSocket: { port: definition.probe.port }, initialDelaySeconds: definition.probe.initialDelaySeconds, periodSeconds: definition.probe.periodSeconds, failureThreshold: definition.probe.failureThreshold } : definition.probe.kind === "http" ? { httpGet: { port: definition.probe.port, path: definition.probe.path ?? "/" }, initialDelaySeconds: definition.probe.initialDelaySeconds, periodSeconds: definition.probe.periodSeconds, failureThreshold: definition.probe.failureThreshold } : { exec: { command: definition.probe.command }, initialDelaySeconds: definition.probe.initialDelaySeconds, periodSeconds: definition.probe.periodSeconds, failureThreshold: definition.probe.failureThreshold } }], volumes: [{ name: "data", persistentVolumeClaim: { claimName: request.kubernetesName } }],
       } } } };
     await this.upsertPvc(request.namespace, pvc);
     await this.upsertService(request.namespace, service);
@@ -242,6 +253,9 @@ export class KubernetesService implements KubernetesGateway {
       ready,
       ...(pod.metadata?.name ? { podName: pod.metadata.name } : {}),
       ...(pod.status?.phase ? { phase: pod.status.phase } : {}),
+      ...(pod.status?.startTime ? { startedAt: new Date(pod.status.startTime).toISOString() } : {}),
+      ...(pod.spec?.nodeName ? { nodeName: pod.spec.nodeName } : {}),
+      restartCount: (pod.status?.containerStatuses ?? []).reduce((sum, status) => sum + status.restartCount, 0),
       ...(waiting ? { message: `${waiting.reason ?? "Waiting"}: ${waiting.message ?? ""}`.trim() } : {}),
     };
   }
@@ -249,13 +263,13 @@ export class KubernetesService implements KubernetesGateway {
   async recentLogs(namespace: string, name: string, lines = 250): Promise<string> {
     const pod = await this.requirePod(namespace, name);
     const response = await this.core.readNamespacedPodLog(pod, namespace, "game", false, undefined, undefined, undefined, false, undefined, lines, true);
-    return response.body;
+    return cleanLogText(response.body);
   }
 
   async followLogs(namespace: string, name: string, onLine: (stream: "stdout" | "stderr", line: string) => void, signal: AbortSignal): Promise<void> {
     const pod = await this.requirePod(namespace, name);
     const stream = new PassThrough(); let pending = "";
-    stream.on("data", (chunk: Buffer) => { pending += chunk.toString("utf8"); const lines = pending.split(/\r?\n/); pending = lines.pop() ?? ""; for (const line of lines) if (line) onLine("stdout", line); });
+    stream.on("data", (chunk: Buffer) => { pending += chunk.toString("utf8"); const lines = pending.split(/\r?\n/); pending = lines.pop() ?? ""; for (const line of lines) { const cleaned = cleanLogText(line); if (cleaned) onLine("stdout", cleaned); } });
     const request = await this.logClient.log(namespace, pod, "game", stream, { follow: true, timestamps: true });
     signal.addEventListener("abort", () => request.abort(), { once: true });
     await new Promise<void>((resolve, reject) => { stream.on("end", resolve); stream.on("error", reject); signal.addEventListener("abort", () => resolve(), { once: true }); });
@@ -272,10 +286,25 @@ export class KubernetesService implements KubernetesGateway {
         resolve();
       }).catch((error) => { clearTimeout(timeout); reject(error); });
     });
-    return { stdout: out, stderr: err, code: err ? 1 : 0 };
+    return { stdout: cleanLogText(out), stderr: cleanLogText(err), code: err ? 1 : 0 };
   }
 
   private async requirePod(namespace: string, name: string): Promise<string> { const observation = await this.observePod(namespace, name); if (!observation.podName) throw new Error(observation.message); return observation.podName; }
+  private async validateSecretReferences(namespace: string, references: Array<{ name: string; secretName: string; key: string }>): Promise<void> {
+    const checked = new Set<string>();
+    for (const reference of references) {
+      const identity = `${reference.secretName}/${reference.key}`;
+      if (checked.has(identity)) continue;
+      checked.add(identity);
+      try {
+        const secret = await this.core.readNamespacedSecret(reference.secretName, namespace);
+        if (!secret.body.data?.[reference.key]) throw new Error(`Required Kubernetes Secret "${reference.secretName}" does not contain data key "${reference.key}".`);
+      } catch (error: any) {
+        if (error?.response?.statusCode === 404) throw new Error(`Required Kubernetes Secret "${reference.secretName}" was not found in namespace "${namespace}".`);
+        throw error;
+      }
+    }
+  }
   private async ensureBackupClaim(namespace: string, sourceClaim: string, sourceStorageGiB: number): Promise<string> {
     const name = `bk-${sourceClaim}`.slice(0, 63);
     await this.upsertPvc(namespace, { apiVersion: "v1", kind: "PersistentVolumeClaim", metadata: { name, namespace, labels: { "app.kubernetes.io/name": "riftgrid-backup-store", "app.kubernetes.io/managed-by": "riftgrid", "riftgrid.io/backup-for": sourceClaim } }, spec: { accessModes: ["ReadWriteOnce"], resources: { requests: { storage: `${Math.max(10, sourceStorageGiB * 2)}Gi` } } } });

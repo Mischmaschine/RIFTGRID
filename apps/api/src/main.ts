@@ -7,16 +7,17 @@ import swaggerUi from "@fastify/swagger-ui";
 import websocket from "@fastify/websocket";
 import { compare, hash } from "bcryptjs";
 import { randomUUID } from "node:crypto";
-import { and, asc, count, db, desc, eq, ilike, inArray, activityEvents, consoleLines, nodes, organizations, organizationSettings, portAllocations, projects, schedulingDecisions, servers, sessions, tasks, users } from "@riftgrid/database";
+import { and, asc, count, db, desc, eq, ilike, inArray, activityEvents, consoleLines, deploymentTemplates, nodes, organizations, organizationSettings, portAllocations, projects, schedulingDecisions, servers, sessions, tasks, users } from "@riftgrid/database";
 import { ControlPlane } from "@riftgrid/control-plane";
 import { MinecraftAdapter } from "@riftgrid/game-minecraft";
-import { FiveMAdapter, GameAdapterRegistry, GenericWorkloadAdapter } from "@riftgrid/game-sdk";
-import { KubernetesService } from "@riftgrid/kubernetes";
+import { FiveMAdapter, GameAdapterRegistry, GenericWorkloadAdapter, RustAdapter, ValheimAdapter } from "@riftgrid/game-sdk";
+import { cleanLogText, KubernetesService } from "@riftgrid/kubernetes";
 import { hasPermission } from "@riftgrid/permissions";
 import { createServerSchema, errorMessage, RiftgridError } from "@riftgrid/shared";
 import { enqueueTask, redisConnection } from "@riftgrid/tasks";
 import { z } from "zod";
 import { authenticate, authorize, createSession, hashToken, resolveUser, sessionCookie } from "./auth.js";
+import { fetchFiveMRuntime } from "./fivem-runtime.js";
 import { createInstallerRegistry } from "./installers.js";
 import { registerPlatformRoutes } from "./platform.js";
 
@@ -28,7 +29,7 @@ await app.register(websocket);
 await app.register(swagger, { openapi: { info: { title: "RIFTGRID API", version: "0.1.0", description: "Desired-state game infrastructure control plane" }, servers: [{ url: "/" }] } });
 await app.register(swaggerUi, { routePrefix: "/docs" });
 
-const adapters = new GameAdapterRegistry().register(new MinecraftAdapter()).register(new GenericWorkloadAdapter()).register(new FiveMAdapter());
+const adapters = new GameAdapterRegistry().register(new MinecraftAdapter()).register(new GenericWorkloadAdapter()).register(new FiveMAdapter()).register(new RustAdapter()).register(new ValheimAdapter());
 const installers = createInstallerRegistry();
 let kubernetes: KubernetesService | null = null;
 function kube() { return kubernetes ??= new KubernetesService(); }
@@ -66,7 +67,17 @@ app.get("/api/v1/auth/me", async (request) => ({ user: await authenticate(reques
 
 app.get("/api/v1/game-adapters", async (request) => { await authenticate(request); return { adapters: adapters.list().map((adapter) => ({ ...adapter.metadata(), capabilities: [...adapter.capabilities()] })) }; });
 app.get("/api/v1/installers", async (request) => { await authenticate(request); return { installers: await Promise.all(installers.list().map(async (manifest) => ({ ...manifest, availableVersions: manifest.spec.status === "READY" ? await installers.get(manifest.metadata.id).supportedVersions() : [], latestManifestVersion: manifest.metadata.version, updateAvailable: false }))) }; });
-app.get("/api/v1/installers/:id", async (request) => { await authenticate(request); const { id } = z.object({ id: z.string() }).parse(request.params); return { installer: installers.manifest(id) }; });
+app.get("/api/v1/installers/:id", async (request) => {
+  const user = await authenticate(request); const { id } = z.object({ id: z.string() }).parse(request.params); const manifest = installers.manifest(id);
+  const projectRows = await db.select({ id: projects.id }).from(projects).where(eq(projects.organizationId, user.organizationId)); const projectIds = projectRows.map((project) => project.id);
+  const [templateRows, deploymentRows, availableVersions] = await Promise.all([
+    projectIds.length ? db.select().from(deploymentTemplates).where(and(inArray(deploymentTemplates.projectId, projectIds), eq(deploymentTemplates.installerId, id))).orderBy(desc(deploymentTemplates.updatedAt)) : [],
+    projectIds.length ? db.select({ id: servers.id, name: servers.name, actualState: servers.actualState, installerVersion: servers.installerVersion, createdAt: servers.createdAt }).from(servers).where(and(inArray(servers.projectId, projectIds), eq(servers.installerId, id))).orderBy(desc(servers.createdAt)) : [],
+    manifest.spec.status === "READY" ? installers.get(id).supportedVersions() : Promise.resolve([]),
+  ]);
+  const capabilities = manifest.spec.adapterId ? [...adapters.get(manifest.spec.adapterId).capabilities()] : [];
+  return { installer: { ...manifest, availableVersions, latestManifestVersion: manifest.metadata.version, updateAvailable: false }, capabilities, usage: { templates: templateRows, deployments: deploymentRows, templateCount: templateRows.length, deploymentCount: deploymentRows.length } };
+});
 app.get("/api/v1/installers/:id/versions", async (request) => { await authenticate(request); const { id } = z.object({ id: z.string() }).parse(request.params); return { versions: await installers.get(id).supportedVersions() }; });
 
 app.get("/api/v1/nodes", async (request) => {
@@ -103,8 +114,10 @@ app.get("/api/v1/tasks", async (request) => {
 
 app.get("/api/v1/activity", async (request) => {
   const user = await authenticate(request);
-  const query = z.object({ limit: z.coerce.number().int().min(1).max(250).default(100) }).parse(request.query);
-  const rows = await db.select({ id: activityEvents.id, type: activityEvents.type, message: activityEvents.message, metadata: activityEvents.metadata, serverId: activityEvents.serverId, serverName: servers.name, actorName: users.name, createdAt: activityEvents.createdAt }).from(activityEvents).leftJoin(servers, eq(activityEvents.serverId, servers.id)).leftJoin(users, eq(activityEvents.actorId, users.id)).where(eq(activityEvents.organizationId, user.organizationId)).orderBy(desc(activityEvents.createdAt)).limit(query.limit);
+  const query = z.object({ limit: z.coerce.number().int().min(1).max(250).default(100), serverId: z.string().uuid().optional() }).parse(request.query);
+  const conditions = [eq(activityEvents.organizationId, user.organizationId)];
+  if (query.serverId) conditions.push(eq(activityEvents.serverId, query.serverId));
+  const rows = await db.select({ id: activityEvents.id, type: activityEvents.type, message: activityEvents.message, metadata: activityEvents.metadata, serverId: activityEvents.serverId, serverName: servers.name, actorName: users.name, createdAt: activityEvents.createdAt }).from(activityEvents).leftJoin(servers, eq(activityEvents.serverId, servers.id)).leftJoin(users, eq(activityEvents.actorId, users.id)).where(and(...conditions)).orderBy(desc(activityEvents.createdAt)).limit(query.limit);
   return { activity: rows };
 });
 
@@ -150,16 +163,30 @@ app.post("/api/v1/servers", async (request, reply) => {
 
 app.get("/api/v1/servers/:id", async (request) => { const user = await authorize(request, "server.view"); const { id } = z.object({ id: z.string().uuid() }).parse(request.params); const [server] = await db.select().from(servers).innerJoin(projects, eq(servers.projectId, projects.id)).where(and(eq(servers.id, id), eq(projects.organizationId, user.organizationId))).limit(1); if (!server) throw new RiftgridError("NOT_FOUND", "Server not found", 404); const [ports, decisions, taskRows] = await Promise.all([db.select().from(portAllocations).where(eq(portAllocations.serverId, id)), db.select().from(schedulingDecisions).where(eq(schedulingDecisions.serverId, id)).orderBy(desc(schedulingDecisions.createdAt)).limit(1), db.select().from(tasks).where(eq(tasks.serverId, id)).orderBy(desc(tasks.createdAt)).limit(20)]); const publicHost = process.env.GAME_PUBLIC_HOST ?? "localhost"; const adapter = adapters.get(server.servers.adapterId); return { server: server.servers, ports: ports.map((port) => ({ ...port, address: `${publicHost}:${port.port}` })), schedulingDecision: decisions[0] ?? null, tasks: taskRows, capabilities: [...adapter.capabilities()], consoleWritable: adapter.consoleCommand("") !== null }; });
 
-for (const action of ["start", "stop", "restart"] as const) app.post(`/api/v1/servers/:id/${action}`, async (request, reply) => {
+app.get("/api/v1/servers/:id/runtime", async (request) => {
+  const user = await authorize(request, "server.view");
+  const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+  const [owned] = await db.select().from(servers).innerJoin(projects, eq(servers.projectId, projects.id)).where(and(eq(servers.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
+  if (!owned) throw new RiftgridError("NOT_FOUND", "Server not found", 404);
+  const namespace = process.env.KUBERNETES_NAMESPACE ?? "riftgrid-servers";
+  const pod = await kube().observePod(namespace, owned.servers.kubernetesName).catch((error) => ({ ready: false, message: error instanceof Error ? error.message : "Kubernetes workload unavailable" }));
+  if (owned.servers.adapterId !== "fivem") return { adapterId: owned.servers.adapterId, pod, live: null };
+  const [gamePort] = await db.select().from(portAllocations).where(and(eq(portAllocations.serverId, id), eq(portAllocations.purpose, "game-tcp"))).limit(1);
+  if (!gamePort) return { adapterId: "fivem", pod, live: { connected: false, sampledAt: new Date().toISOString(), error: "FiveM game endpoint has not been allocated", players: [], resources: [], server: { hostname: null, clients: 0, maxClients: null, gameType: null, mapName: null, onesync: null, version: null } } };
+  const live = await fetchFiveMRuntime(`${process.env.GAME_PUBLIC_HOST ?? "localhost"}:${gamePort.port}`);
+  return { adapterId: "fivem", pod, live };
+});
+
+for (const action of ["start", "stop", "restart", "reconcile"] as const) app.post(`/api/v1/servers/:id/${action}`, async (request, reply) => {
   const permission = action === "start" ? "server.start" : action === "stop" ? "server.stop" : "server.restart"; const user = await authorize(request, permission); const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
   const [server] = await db.select().from(servers).innerJoin(projects, eq(servers.projectId, projects.id)).where(and(eq(servers.id, id), eq(projects.organizationId, user.organizationId))).limit(1); if (!server) throw new RiftgridError("NOT_FOUND", "Server not found", 404);
   const [activeTask] = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.serverId, id), inArray(tasks.status, ["QUEUED", "RUNNING"]))).limit(1); if (activeTask) throw new RiftgridError("CONFLICT", "Another operation already owns this server.", 409, { taskId: activeTask.id });
-  const type = action === "start" ? "START_SERVER" : action === "stop" ? "STOP_SERVER" : "RESTART_SERVER"; const desiredState = action === "stop" ? "STOPPED" : "RUNNING"; const taskId = randomUUID();
+  const type = action === "start" ? "START_SERVER" : action === "stop" ? "STOP_SERVER" : action === "restart" ? "RESTART_SERVER" : "RECONCILE_SERVER"; const desiredState = action === "stop" ? "STOPPED" : "RUNNING"; const taskId = randomUUID();
   await db.transaction(async (tx) => { await tx.update(servers).set({ desiredState, updatedAt: new Date() }).where(eq(servers.id, id)); await tx.insert(tasks).values({ id: taskId, projectId: server.projects.id, serverId: id, type, idempotencyKey: `${type}:${id}:${taskId}` }); await tx.insert(activityEvents).values({ organizationId: user.organizationId, projectId: server.projects.id, actorId: user.id, serverId: id, type: "server.desired-state", message: `${user.name} requested ${server.servers.name} -> ${desiredState}`, metadata: { desiredState } }); });
   await enqueueTask({ taskId, serverId: id, type }); return reply.code(202).send({ taskId, desiredState });
 });
 
-app.get("/api/v1/servers/:id/console/history", async (request) => { const user = await authorize(request, "server.console.read"); const { id } = z.object({ id: z.string().uuid() }).parse(request.params); const [row] = await db.select().from(servers).innerJoin(projects, eq(servers.projectId, projects.id)).where(and(eq(servers.id, id), eq(projects.organizationId, user.organizationId))); if (!row) throw new RiftgridError("NOT_FOUND", "Server not found", 404); const persisted = await db.select().from(consoleLines).where(eq(consoleLines.serverId, id)).orderBy(desc(consoleLines.createdAt)).limit(300); try { const live = await kube().recentLogs(process.env.KUBERNETES_NAMESPACE ?? "riftgrid-servers", row.servers.kubernetesName, 300); return { lines: live.split(/\r?\n/).filter(Boolean).map((line) => ({ stream: "stdout", line })) }; } catch { return { lines: persisted.reverse() }; } });
+app.get("/api/v1/servers/:id/console/history", async (request) => { const user = await authorize(request, "server.console.read"); const { id } = z.object({ id: z.string().uuid() }).parse(request.params); const [row] = await db.select().from(servers).innerJoin(projects, eq(servers.projectId, projects.id)).where(and(eq(servers.id, id), eq(projects.organizationId, user.organizationId))); if (!row) throw new RiftgridError("NOT_FOUND", "Server not found", 404); const persisted = await db.select().from(consoleLines).where(eq(consoleLines.serverId, id)).orderBy(desc(consoleLines.createdAt)).limit(300); try { const live = await kube().recentLogs(process.env.KUBERNETES_NAMESPACE ?? "riftgrid-servers", row.servers.kubernetesName, 300); return { lines: live.split(/\r?\n/).filter(Boolean).map((line) => ({ stream: "stdout", line })) }; } catch { return { lines: persisted.reverse().map((entry) => ({ ...entry, line: cleanLogText(entry.line) })) }; } });
 
 app.get("/api/v1/events", { websocket: true }, async (socket, request) => {
   const user = await resolveUser(request); if (!user) { socket.close(4401, "Unauthorized"); return; }

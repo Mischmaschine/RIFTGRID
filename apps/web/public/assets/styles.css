@@ -1390,6 +1390,22 @@ footer{border-top:1px solid var(--line);padding:42px 0 54px}.footer-grid{display
 .runtime-tab.active{color:var(--acid);border-color:rgba(183,255,54,.22)}
 .v6-statement h2{max-width:1450px}
 
+.quick-install{padding:115px 0;display:grid;grid-template-columns:.85fr 1.15fr;gap:70px;align-items:center}
+.quick-install-copy h2{font-size:clamp(48px,5vw,78px);line-height:.94;letter-spacing:-.055em;margin:18px 0 24px}
+.quick-install-copy h2 span{color:#454d58}
+.quick-install-copy>p:not(.section-kicker){max-width:610px;color:#85909d;line-height:1.7}
+.install-steps{display:flex;gap:20px;flex-wrap:wrap;margin-top:30px}
+.install-steps span{font:8px ui-monospace,monospace;letter-spacing:.1em;color:#69737f}
+.install-steps b{color:var(--acid);margin-right:6px}
+.install-command-card{padding:28px;overflow:hidden;background:radial-gradient(circle at 100% 0,rgba(183,255,54,.06),transparent 38%),#090c10}
+.install-command-top{display:flex;justify-content:space-between;margin-bottom:20px;font:7px ui-monospace,monospace;letter-spacing:.14em;color:#68727e}
+.install-command-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;padding:18px;border:1px solid var(--line2);border-radius:14px;background:#05070a}
+.install-command-row code{color:#dce3ea;font:11px/1.7 ui-monospace,monospace;overflow-wrap:anywhere}
+.install-command-row button{border:1px solid rgba(183,255,54,.25);border-radius:9px;background:rgba(183,255,54,.06);color:var(--acid);padding:10px 12px;font:700 8px ui-monospace,monospace;letter-spacing:.12em;cursor:pointer}
+.install-command-row button:hover{background:rgba(183,255,54,.12)}
+.install-command-card>p{margin:18px 2px 0;color:#626c78;font-size:9px;line-height:1.65}
+.install-command-card>p code{color:#89939f}
+
 .universal-scroll{position:relative;min-height:500vh;border-block:1px solid var(--line);background:#06080b}
 .universal-sticky{position:sticky;top:82px;height:calc(100vh - 82px);overflow:hidden}
 .universal-bg{position:absolute;inset:0;background:radial-gradient(circle at 73% 45%,rgba(143,107,255,.10),transparent 30%),radial-gradient(circle at 65% 65%,rgba(103,232,255,.04),transparent 25%)}
@@ -1457,12 +1473,14 @@ footer{border-top:1px solid var(--line);padding:42px 0 54px}.footer-grid{display
 .legal-content{padding:42px}.legal-content h2{font-size:22px;margin:35px 0 12px}.legal-content h2:first-child{margin-top:0}.legal-content p,.legal-content li{color:#8c95a2;line-height:1.75;font-size:13px}.legal-content a{color:#d9dee5;text-decoration:underline;text-underline-offset:3px}.legal-list{padding-left:20px;display:grid;gap:8px}
 
 @media(max-width:1100px){
+  .quick-install{grid-template-columns:1fr;gap:38px}
   .installer-showcase,.catalog-grid,.price-grid{grid-template-columns:1fr 1fr}
   .universal-layout{grid-template-columns:1fr;gap:18px;align-content:center}.universal-copy h3{font-size:52px}.universal-visual{height:48vh;min-height:390px}
   .custom-deploy-demo{grid-template-columns:1fr}.custom-form{border-right:0;border-bottom:1px solid var(--line)}
   .footer-v6{grid-template-columns:1fr;gap:40px}
 }
 @media(max-width:620px){
+  .quick-install{padding:85px 0}.install-command-row{grid-template-columns:1fr}.install-command-row button{width:max-content}.install-steps{display:grid;gap:10px}
   .universal-scroll{min-height:420svh}.universal-sticky{top:68px;height:calc(100svh - 68px)}
   .universal-layout{width:calc(100% - 28px);display:flex;flex-direction:column;justify-content:center;gap:14px}
   .universal-copy .eyebrow{font-size:7px}.universal-copy .phase-count{margin:10px 0 7px}.universal-copy h3{font-size:38px;margin-bottom:9px}.universal-copy p{font-size:11px;line-height:1.45;min-height:48px}
