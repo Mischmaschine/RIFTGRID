@@ -7,6 +7,8 @@ agents: 2
 ports:
   - port: 30000-30100:30000-30100
     nodeFilters: ["agent:*"]
+  - port: 30000-30100:30000-30100/udp
+    nodeFilters: ["agent:*"]
 options:
   k3s:
     extraArgs:

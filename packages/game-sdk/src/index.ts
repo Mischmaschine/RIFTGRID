@@ -82,6 +82,12 @@ export interface Installer<TConfiguration = unknown> {
 export interface GameHealth { healthy: boolean; ready: boolean; message: string; playerCount?: number; }
 export interface GameEvent { type: "player.join" | "player.leave" | "server.ready" | "message"; data: Record<string, unknown>; }
 export interface GamePlayer { id?: string; name: string; joinedAt?: string; }
+export interface PlayerPopulation { currentPlayers: number; maxPlayers: number; sampledAt: string; }
+export interface PopulationQuery { command: string[]; parse(output: string): PlayerPopulation | null; }
+export interface AdapterCommandPlan { prepare: string[][]; finalize: string[][]; }
+export interface GameOrchestrationCapabilities {
+  playerAware: boolean; supportsGracefulShutdown: boolean; supportsLiveQuery: boolean; supportsRcon: boolean; supportsInstanceGroups: boolean; supportsProxyRegistration: boolean; supportsResourceManagement: boolean; supportsWorldSave: boolean;
+}
 export interface AdapterContext { serverId: string; namespace: string; podName?: string; configuration: unknown; }
 
 export interface GameAdapter {
@@ -91,6 +97,13 @@ export interface GameAdapter {
   parseConsole(line: string): GameEvent | null;
   gracefulStopCommand(): string[];
   consoleCommand(command: string): string[] | null;
+  orchestrationCapabilities?(): Partial<GameOrchestrationCapabilities>;
+  populationQuery?(): PopulationQuery | null;
+  backupCommandPlan?(): AdapterCommandPlan | null;
+}
+
+export function orchestrationCapabilities(adapter: GameAdapter): GameOrchestrationCapabilities {
+  return { playerAware: false, supportsGracefulShutdown: true, supportsLiveQuery: false, supportsRcon: false, supportsInstanceGroups: false, supportsProxyRegistration: false, supportsResourceManagement: false, supportsWorldSave: false, ...adapter.orchestrationCapabilities?.() };
 }
 
 export class GameAdapterRegistry {
@@ -205,6 +218,7 @@ export class GenericWorkloadAdapter implements GameAdapter {
   parseConsole(_line: string): GameEvent | null { return null; }
   gracefulStopCommand() { return ["sh", "-c", "kill -TERM 1"]; }
   consoleCommand(_command: string) { return null; }
+  orchestrationCapabilities() { return { supportsGracefulShutdown: true }; }
 }
 
 export const fiveMConfigurationSchema = z.object({
@@ -303,6 +317,7 @@ export class FiveMAdapter implements GameAdapter {
   }
   gracefulStopCommand() { return ["sh", "-c", "kill -TERM 1"]; }
   consoleCommand(_command: string) { return null; }
+  orchestrationCapabilities() { return { playerAware: true, supportsGracefulShutdown: true, supportsLiveQuery: true, supportsRcon: false, supportsInstanceGroups: false, supportsProxyRegistration: false, supportsResourceManagement: true, supportsWorldSave: false }; }
 }
 
 const kubernetesSecretName = z.string().regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/);
@@ -377,6 +392,7 @@ export class RustAdapter implements GameAdapter {
   parseConsole(line: string): GameEvent | null { return /Server startup complete/i.test(line) ? { type: "server.ready", data: {} } : null; }
   gracefulStopCommand() { return ["sh", "-c", "kill -TERM 1"]; }
   consoleCommand(_command: string) { return null; }
+  orchestrationCapabilities() { return { playerAware: false, supportsGracefulShutdown: true, supportsLiveQuery: false, supportsRcon: true, supportsInstanceGroups: false, supportsProxyRegistration: false, supportsResourceManagement: false, supportsWorldSave: true }; }
 }
 
 export const valheimConfigurationSchema = z.object({
@@ -430,4 +446,5 @@ export class ValheimAdapter implements GameAdapter {
   parseConsole(line: string): GameEvent | null { return /Game server connected|Game server registered/i.test(line) ? { type: "server.ready", data: {} } : null; }
   gracefulStopCommand() { return ["sh", "-c", "kill -TERM 1"]; }
   consoleCommand(_command: string) { return null; }
+  orchestrationCapabilities() { return { playerAware: false, supportsGracefulShutdown: true, supportsLiveQuery: false, supportsRcon: false, supportsInstanceGroups: false, supportsProxyRegistration: false, supportsResourceManagement: false, supportsWorldSave: true }; }
 }

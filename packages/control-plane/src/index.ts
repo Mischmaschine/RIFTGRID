@@ -1,11 +1,11 @@
-import { and, backupPolicies, backups, db, desc, eq, inArray, lte, nodes, organizationSettings, portAllocations, schedulingDecisions, servers, sql as postgresClient, tasks, activityEvents, projects } from "@riftgrid/database";
+import { and, backupPolicies, backups, db, desc, eq, inArray, lte, managedDatabases, nodes, organizationSettings, portAllocations, schedulingDecisions, servers, sql as postgresClient, stackComponents, stackOperations, stacks, tasks, activityEvents, projects } from "@riftgrid/database";
 import type { GameAdapterRegistry, InstallerRegistry } from "@riftgrid/game-sdk";
 import type { KubernetesGateway, ProvisionRequest } from "@riftgrid/kubernetes";
 import { schedule } from "@riftgrid/scheduler";
 import { assertTransition, RiftgridError, type CandidateDecision, type NodeCandidate, type ServerState } from "@riftgrid/shared";
 import { enqueueTask, redisConnection } from "@riftgrid/tasks";
 import { randomUUID } from "node:crypto";
-import { chooseAvailablePort } from "./ports.js";
+import { chooseAvailableProtocolPort } from "./ports.js";
 
 export * from "./ports.js";
 
@@ -83,6 +83,67 @@ export class ControlPlane {
     }
     return result;
   }
+
+  async processStackOperations(): Promise<void> {
+    const pending = await db.select().from(stackOperations).where(inArray(stackOperations.status, ["QUEUED", "RUNNING"])).orderBy(stackOperations.createdAt);
+    for (const snapshot of pending) {
+      const lock = await postgresClient.reserve(); await lock`select pg_advisory_lock(hashtext(${`stack:${snapshot.stackId}`}))`;
+      try {
+        let [operation] = await db.select().from(stackOperations).where(eq(stackOperations.id, snapshot.id)).limit(1);
+        if (!operation || !["QUEUED", "RUNNING"].includes(operation.status)) continue;
+        if (operation.status === "QUEUED") { [operation] = await db.update(stackOperations).set({ status: "RUNNING", startedAt: new Date(), currentStep: "Orchestration started" }).where(eq(stackOperations.id, operation.id)).returning(); }
+        if (!operation) continue;
+
+        if (operation.currentTaskId) {
+          const [task] = await db.select().from(tasks).where(eq(tasks.id, operation.currentTaskId)).limit(1);
+          if (!task) { await this.failStackOperation(operation.id, "The active component task no longer exists"); continue; }
+          if (task.status === "QUEUED" || task.status === "RUNNING") continue;
+          if (task.status !== "SUCCESS") { await this.failStackOperation(operation.id, task.errorMessage ?? `Component task ${task.status.toLowerCase()}`); continue; }
+          [operation] = await db.update(stackOperations).set({ cursor: operation.cursor + 1, currentTaskId: null, currentComponentId: null, currentStep: "Component converged" }).where(eq(stackOperations.id, operation.id)).returning();
+          if (!operation) continue;
+        }
+
+        if (operation.currentComponentId) {
+          const operationId = operation.id;
+          const [component] = await db.select().from(stackComponents).where(eq(stackComponents.id, operation.currentComponentId)).limit(1);
+          const [database] = component?.managedDatabaseId ? await db.select().from(managedDatabases).where(eq(managedDatabases.id, component.managedDatabaseId)).limit(1) : [];
+          if (!component || !database) { await this.failStackOperation(operation.id, "The active database component no longer exists"); continue; }
+          try {
+            const observation = await this.kubernetes.observePod(namespace, database.kubernetesName);
+            if (!observation.ready) { if (observation.phase === "Failed") { await db.update(managedDatabases).set({ state: "FAILED", lastError: observation.message ?? "Database pod failed", updatedAt: new Date() }).where(eq(managedDatabases.id, database.id)); await this.failStackOperation(operation.id, observation.message ?? "Database component failed"); } continue; }
+            await db.update(managedDatabases).set({ state: "RUNNING", lastError: null, updatedAt: new Date() }).where(eq(managedDatabases.id, database.id));
+            [operation] = await db.update(stackOperations).set({ cursor: operation.cursor + 1, currentComponentId: null, currentStep: `${component.name} is ready` }).where(eq(stackOperations.id, operation.id)).returning();
+            if (!operation) continue;
+          } catch (error) { await this.failStackOperation(operationId, error instanceof Error ? error.message : "Database readiness check failed"); continue; }
+        }
+
+        while (operation && operation.cursor < operation.plan.length) {
+          const step: { componentId: string; action: "START" | "STOP" } | undefined = operation.plan[operation.cursor]; if (!step) break;
+          const component: typeof stackComponents.$inferSelect | undefined = (await db.select().from(stackComponents).where(and(eq(stackComponents.id, step.componentId), eq(stackComponents.stackId, operation.stackId))).limit(1))[0];
+          if (!component) { await this.failStackOperation(operation.id, "A planned Stack component no longer exists"); break; }
+          if (component.resourceKind === "EXTERNAL") { [operation] = await db.update(stackOperations).set({ cursor: operation.cursor + 1, currentStep: `External component ${component.name} left unchanged` }).where(eq(stackOperations.id, operation.id)).returning(); if (!operation) break; continue; }
+
+          if (component.serverId) {
+            const [server] = await db.select().from(servers).where(eq(servers.id, component.serverId)).limit(1); if (!server) { await this.failStackOperation(operation.id, `Deployment for ${component.name} no longer exists`); break; }
+            const converged = step.action === "START" ? server.actualState === "RUNNING" : server.actualState === "STOPPED";
+            if (converged) { [operation] = await db.update(stackOperations).set({ cursor: operation.cursor + 1, currentStep: `${component.name} already ${step.action === "START" ? "running" : "stopped"}` }).where(eq(stackOperations.id, operation.id)).returning(); if (!operation) break; continue; }
+            const [active] = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.serverId, server.id), inArray(tasks.status, ["QUEUED", "RUNNING"]))).limit(1); if (active) { await this.failStackOperation(operation.id, `${component.name} already has an active task`); break; }
+            const taskId = randomUUID(); const type = step.action === "START" ? "START_SERVER" : "STOP_SERVER"; await db.transaction(async (tx) => { await tx.insert(tasks).values({ id: taskId, projectId: server.projectId, serverId: server.id, type, idempotencyKey: `stack:${operation!.id}:${operation!.cursor}`, metadata: { stackId: operation!.stackId, stackOperationId: operation!.id, componentId: component.id } }); await tx.update(servers).set({ desiredState: step.action === "START" ? "RUNNING" : "STOPPED", updatedAt: new Date() }).where(eq(servers.id, server.id)); await tx.update(stackOperations).set({ currentTaskId: taskId, currentComponentId: component.id, currentStep: `${step.action === "START" ? "Starting" : "Stopping"} ${component.name}` }).where(eq(stackOperations.id, operation!.id)); }); await enqueueTask({ taskId, serverId: server.id, type }); break;
+          }
+
+          if (component.managedDatabaseId) {
+            const [database] = await db.select().from(managedDatabases).where(eq(managedDatabases.id, component.managedDatabaseId)).limit(1); if (!database) { await this.failStackOperation(operation.id, `Database for ${component.name} no longer exists`); break; }
+            if (step.action === "STOP") { if (database.state !== "STOPPED") await this.kubernetes.scaleWorkload(namespace, database.kubernetesName, 0); await db.update(managedDatabases).set({ state: "STOPPED", updatedAt: new Date() }).where(eq(managedDatabases.id, database.id)); [operation] = await db.update(stackOperations).set({ cursor: operation.cursor + 1, currentStep: `${component.name} stopped` }).where(eq(stackOperations.id, operation.id)).returning(); if (!operation) break; continue; }
+            if (database.state === "RUNNING") { [operation] = await db.update(stackOperations).set({ cursor: operation.cursor + 1, currentStep: `${component.name} already running` }).where(eq(stackOperations.id, operation.id)).returning(); if (!operation) break; continue; }
+            await this.kubernetes.scaleWorkload(namespace, database.kubernetesName, 1); await db.update(managedDatabases).set({ state: "PROVISIONING", lastError: null, updatedAt: new Date() }).where(eq(managedDatabases.id, database.id)); await db.update(stackOperations).set({ currentComponentId: component.id, currentStep: `Waiting for ${component.name}` }).where(eq(stackOperations.id, operation.id)); break;
+          }
+        }
+        if (operation && operation.cursor >= operation.plan.length) { await db.update(stackOperations).set({ status: "SUCCESS", currentComponentId: null, currentTaskId: null, currentStep: "Stack converged", finishedAt: new Date() }).where(eq(stackOperations.id, operation.id)); const [stack] = await db.select().from(stacks).where(eq(stacks.id, operation.stackId)); if (stack) { const [project] = await db.select().from(projects).where(eq(projects.id, stack.projectId)); if (project) await db.insert(activityEvents).values({ organizationId: project.organizationId, projectId: project.id, type: "stack.lifecycle.completed", message: `${stack.name} ${operation.action.toLowerCase()} completed`, metadata: { stackId: stack.id, operationId: operation.id } }); } await this.publish({ type: "stack.operation.completed", stackId: operation.stackId, operationId: operation.id, action: operation.action }); }
+      } finally { await lock`select pg_advisory_unlock(hashtext(${`stack:${snapshot.stackId}`}))`; lock.release(); }
+    }
+  }
+
+  private async failStackOperation(operationId: string, message: string) { const [operation] = await db.update(stackOperations).set({ status: "FAILED", errorMessage: message, currentStep: "Stack orchestration failed", finishedAt: new Date() }).where(eq(stackOperations.id, operationId)).returning(); if (operation) await this.publish({ type: "stack.operation.failed", stackId: operation.stackId, operationId, error: message }); }
 
   async execute(taskId: string): Promise<void> {
     const [candidate] = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1);
@@ -184,13 +245,9 @@ export class ControlPlane {
       await db.update(servers).set({ actualState: "BACKING_UP", updatedAt: new Date() }).where(eq(servers.id, server.id));
     }
     await this.progress(task, 15, "PREPARING BACKUP");
-    let minecraftPaused = false;
+    const adapter = this.adapters.get(server.adapterId); const backupPlan = returnState === "RUNNING" ? adapter.backupCommandPlan?.() ?? null : null; let backupPrepared = false;
     try {
-      if (server.adapterId === "minecraft" && returnState === "RUNNING") {
-        await this.kubernetes.exec(namespace, server.kubernetesName, ["rcon-cli", "save-all", "flush"]);
-        await this.kubernetes.exec(namespace, server.kubernetesName, ["rcon-cli", "save-off"]);
-        minecraftPaused = true;
-      }
+      if (backupPlan) { for (const command of backupPlan.prepare) await this.kubernetes.exec(namespace, server.kubernetesName, command); backupPrepared = true; }
       await this.progress(task, 35, "ARCHIVING PERSISTENT DATA");
       const archive = await this.kubernetes.createBackup(namespace, server.kubernetesName, node.name, record.archiveName, server.storageGiB);
       await db.update(backups).set({ status: "AVAILABLE", sizeBytes: archive.sizeBytes, checksum: archive.checksum, completedAt: new Date() }).where(eq(backups.id, record.id));
@@ -206,7 +263,7 @@ export class ControlPlane {
       await this.kubernetes.deleteBackup(namespace, server.kubernetesName, node.name, record.archiveName, server.storageGiB).catch(() => undefined);
       throw error;
     } finally {
-      if (minecraftPaused) await this.kubernetes.exec(namespace, server.kubernetesName, ["rcon-cli", "save-on"]).catch(() => undefined);
+      if (backupPrepared && backupPlan) for (const command of backupPlan.finalize) await this.kubernetes.exec(namespace, server.kubernetesName, command).catch(() => undefined);
     }
   }
 
@@ -284,9 +341,9 @@ export class ControlPlane {
       if (existing) { result.push({ ...request, port: existing.port }); continue; }
       let allocated = false;
       for (let attempt = 0; attempt < end - start + 1 && !allocated; attempt += 1) {
-        // Kubernetes NodePorts are allocated cluster-wide, including across protocols.
-        const usedRows = await db.select({ port: portAllocations.port }).from(portAllocations);
-        const port = chooseAvailablePort(new Set(usedRows.map((row) => row.port)), start, end);
+        const usedRows = await db.select({ port: portAllocations.port, protocol: portAllocations.protocol }).from(portAllocations);
+        const paired = result.find((port) => port.containerPort === request.containerPort && port.protocol !== request.protocol);
+        const port = chooseAvailableProtocolPort(usedRows, request.protocol, start, end, paired?.port);
         try { await db.insert(portAllocations).values({ serverId: server.id, nodeId, port, protocol: request.protocol, purpose: request.name }); result.push({ ...request, port }); allocated = true; } catch (error: any) { if (error?.code !== "23505") throw error; }
       }
       if (!allocated) throw new RiftgridError("PORT_ALLOCATION_FAILED", "No collision-free port is available.", 409);

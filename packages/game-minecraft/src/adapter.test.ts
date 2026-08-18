@@ -25,4 +25,10 @@ describe("Minecraft adapter", () => {
     expect(definition.environment.MEMORY).toBeUndefined();
   });
   it("parses player events", () => expect(new MinecraftAdapter().parseConsole("[Server thread/INFO]: Max joined the game")?.type).toBe("player.join"));
+  it("owns its population and backup commands outside orchestration core", () => {
+    const adapter = new MinecraftAdapter();
+    expect(adapter.populationQuery().parse("There are 7 of a max of 40 players online")).toMatchObject({ currentPlayers: 7, maxPlayers: 40 });
+    expect(adapter.backupCommandPlan()).toEqual({ prepare: [["rcon-cli", "save-all", "flush"], ["rcon-cli", "save-off"]], finalize: [["rcon-cli", "save-on"]] });
+    expect(adapter.orchestrationCapabilities().supportsWorldSave).toBe(true);
+  });
 });

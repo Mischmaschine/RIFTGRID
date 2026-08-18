@@ -37,11 +37,19 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 - Integrated the supplied RIFTGRID V6 commercial site as the public root landing page. Its HTML, CSS, JavaScript, copy, and visuals are preserved byte-for-byte; the existing product console remains available at `/dashboard` and `/login`.
 - Hardened Kubernetes event timestamp normalization for Windows/Docker resume scenarios and preserved live per-node workload counts in the overview API instead of discarding them after discovery.
 - Expanded the FiveM server page into an operations cockpit with live public FXServer player/resource data, pod uptime/readiness/restarts, dynamic capability tabs, configuration with secret redaction, backups, activity, performance signals, quick actions, and searchable/filterable/exportable console logs.
+- Added the first game-agnostic Stack orchestration vertical slice: persisted Stacks, Blueprints, Components, generic typed Relationships, logical Service Bindings, Scaling Policies, Placement Policies and coordinated Stack Operations.
+- Added a pure generic dependency engine with cycle rejection, provider-first startup, consumer-first shutdown, two-phase restart and aggregate dependency health. It contains no Minecraft-, FiveM- or Rust-specific rules.
+- Added a generic adapter orchestration capability contract plus optional population and backup command plans. Minecraft player/save commands now live in the Minecraft adapter instead of the control-plane/Overview core; the Kubernetes Service type setting is game-neutral with backward-compatible configuration fallback.
+- Added RBAC-protected Stack APIs for Blueprint catalog, composition from real existing deployments/databases, live graph detail, lifecycle requests and metadata-only Stack deletion that never deletes referenced resources.
+- Added a worker-driven Stack lifecycle executor that reuses existing audited deployment tasks, waits for each required component before advancing and also coordinates managed database readiness.
+- Added real `Deploy Stack`, Stack inventory and Stack detail UI with live component state, placement, resources, ports, active tasks, dependency edges, operation progress and Kubernetes DNS service bindings.
+- Added a guided, short-lived remote k3s node enrollment flow for Ubuntu/Debian nodes with hidden token prompts, hashed enrollment credentials, automatic Kubernetes discovery and no overwrite of an existing agent installation.
 
 ## IN PROGRESS
 
 - FiveM read-only operations are live. Authenticated player actions, resource lifecycle commands, writable console transport, and versioned `server.cfg` editing still require the scoped RIFTGRID FiveM bridge; undocumented txAdmin routes are deliberately not used.
 - Backup restore is implemented and constrained to a stopped workload. Its live acceptance remains pending; no restore or source-data replacement was performed during installer/template work.
+- Stack Blueprint instantiation currently adopts existing real resources. Creating all component deployments directly from Blueprint definitions, injecting resolved bindings into newly created workloads and coordinated Stack backups are the next Stack slices.
 
 ## VERIFIED
 
@@ -67,6 +75,10 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 - Rust and Valheim installer manifests now report `READY`, their configuration forms were verified live, and `riftgrid/rust-server:0.1.0` plus `riftgrid/valheim-server:0.1.0` were built successfully and imported into all three existing k3d nodes. No Rust/Valheim deployment, task, Service, StatefulSet or PVC was created during this work.
 - Post-Rust/Valheim quality gates passed sequentially: typecheck 12/12, lint 12/12, tests 21/21 tasks including 11 Installer SDK assertions, and build 12/12 with 22 application routes.
 - A separate authenticated client concurrently created `test-mc`, reached `RUNNING`, and then stopped it through normal RIFTGRID tasks. Its StatefulSet is `0/0` and its independently created 10 GiB PVC is `Bound`; it was not part of the Rust/Valheim acceptance and was left untouched.
+- Stack migration `0007_stack_orchestration` applied additively. The live UI created `survival-infrastructure` around the existing `survival-01` deployment and its already linked `test-db` MariaDB without recreating or restarting either resource.
+- The real Stack graph reports aggregate `DEGRADED` because `survival-01` is `RUNNING` while its required database dependency is deliberately `STOPPED`; it resolves the logical `database` binding to `db-8600c5ea-61c.riftgrid-servers.svc.cluster.local` and shows the required `USES_DATABASE` lifecycle edge.
+- Generic orchestration tests pass for provider-first start, reverse stop, two-phase restart, cycle rejection and required-component aggregate health. The Stack pages and graph were inspected in the running application; no Stack lifecycle action was invoked during acceptance.
+- Post-Stack quality gates passed sequentially: typecheck 12/12 tasks, lint 12/12 tasks, tests 21/21 tasks, and build 12/12 tasks with 25 application pages. The Node enrollment installer test is isolated from database startup through a pure script-generator module.
 
 ## BLOCKED
 
@@ -74,13 +86,13 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 
 ## NEXT
 
-1. Add an RBAC-protected, audited Secrets area so FiveM, Rust, Valheim and Custom OCI credentials can be created/rotated through RIFTGRID without exposing stored values.
-2. Move installer-specific wizard presentation metadata into the Installer contract so future installers do not require new page-level conditionals.
-3. Implement the authenticated RIFTGRID FiveM bridge with scoped, audited player/resource/console commands plus a versioned `server.cfg` editor, without depending on private txAdmin routes.
-4. Continue the Minecraft operations surface with real players, properties, worlds, plugins, files and performance slices; the current generic server page does not yet fulfill the full Minecraft management surface.
-5. Implement the safe per-PVC file manager, real utilization telemetry, and the currently modeled but unimplemented migrate/reinstall/delete task handlers.
-6. Replace the dashboard header's visual-only search, notification and profile controls with real behavior.
-7. Perform backup restore acceptance only through the explicit UI action while Minecraft is stopped, verify the preserved marker, and start the existing workload normally.
+1. Expand `Deploy Stack` from safe adoption into transactional Blueprint instantiation of new components, while retaining rollback boundaries and idempotency per deployment.
+2. Inject declared Service Bindings into Blueprint-created workloads as structured environment references and add stack-scoped Kubernetes aliases where stable logical names require them.
+3. Implement generic Instance Groups and persisted Scaling Policies; add the adapter population/safe-disposal contract before enabling player-aware scale-down.
+4. Upgrade node maintenance to classify Stack workloads as `SAFE_TO_MOVE`, `WAIT_FOR_EMPTY`, `PERSISTENT_MIGRATION_REQUIRED` or `BLOCKED` with explainable reasons.
+5. Promote Minecraft Network and FiveM RP from honest `PREVIEW` Blueprints only after their installer-specific component definitions work through the same generic core; validate Rust as the third materially different ecosystem.
+6. Add an RBAC-protected, audited Secrets area so FiveM, Rust, Valheim and Custom OCI credentials can be created/rotated through RIFTGRID without exposing stored values.
+7. Implement the authenticated RIFTGRID FiveM bridge and continue the Minecraft operations surface without moving their runtime-specific behavior into Stack core.
 
 ## KNOWN LIMITATIONS
 
@@ -93,3 +105,6 @@ RIFTGRID is a desired-state control plane for persistent game workloads on admin
 - Live restore acceptance remains pending because it is an explicitly destructive data operation and must only be started through its deliberate UI confirmation while Minecraft is stopped.
 - Global search, notifications/profile actions, server migration/reinstall/delete, file management, server groups/autoscaling, Velocity service discovery and production-grade metrics remain roadmap work; their UI is not presented as completed functionality.
 - NodePort allocation is suitable for the current local development cluster. Production ingress/load-balancing, TLS, observability, CSI-native snapshots, and external PostgreSQL/Redis secret management remain deployment-hardening work.
+- `Deploy Stack` currently composes existing deployments and managed databases; it does not yet create all Blueprint components in one transaction. Minecraft Network and FiveM RP remain visibly `PREVIEW`, and Rust Community remains `PLANNED`.
+- Service Bindings already resolve logical names to real Kubernetes DNS addresses in Stack API/UI, but automatic environment injection is limited to future Blueprint-created workloads; existing adopted workloads are not rewritten or restarted.
+- Stack lifecycle execution is implemented but acceptance deliberately did not start, stop or restart the preserved reference workloads. Coordinated Stack backup, Instance Groups, player-aware scaling and maintenance migration classification remain the next orchestration milestones.

@@ -1,4 +1,5 @@
 import { AppsV1Api, BatchV1Api, CoreV1Api, Exec, KubeConfig, Log, StorageV1Api, type V1Job, type V1Node, type V1PersistentVolumeClaim, type V1Service, type V1StatefulSet } from "@kubernetes/client-node";
+import { WebSocketHandler } from "@kubernetes/client-node/dist/web-socket-handler.js";
 import { PassThrough } from "node:stream";
 import type { GameServerDefinition } from "@riftgrid/game-sdk";
 import type { NodeCandidate } from "@riftgrid/shared";
@@ -72,7 +73,9 @@ export class KubernetesService implements KubernetesGateway {
     this.apps = this.config.makeApiClient(AppsV1Api);
     this.batch = this.config.makeApiClient(BatchV1Api);
     this.storage = this.config.makeApiClient(StorageV1Api);
-    this.execClient = new Exec(this.config);
+    // Avoid implicit process stdio access, which can block hidden Windows watch processes.
+    const websocketStreams = { stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough() };
+    this.execClient = new Exec(this.config, new WebSocketHandler(this.config, undefined, websocketStreams));
     this.logClient = new Log(this.config);
   }
 
@@ -224,7 +227,7 @@ export class KubernetesService implements KubernetesGateway {
     await this.validateSecretReferences(request.namespace, request.definition.secretEnvironment ?? []);
     const labels = workloadLabels(request.serverId, request.kubernetesName);
     const pvc: V1PersistentVolumeClaim = { apiVersion: "v1", kind: "PersistentVolumeClaim", metadata: { name: request.kubernetesName, namespace: request.namespace, labels }, spec: { accessModes: ["ReadWriteOnce"], resources: { requests: { storage: `${request.definition.resources.storageGiB}Gi` } }, ...(request.storageClassName ? { storageClassName: request.storageClassName } : {}) } };
-    const service: V1Service = { apiVersion: "v1", kind: "Service", metadata: { name: request.kubernetesName, namespace: request.namespace, labels }, spec: { type: process.env.MINECRAFT_SERVICE_TYPE ?? "NodePort", selector: labels, ports: request.publicPorts.map((port) => ({ name: port.name, port: port.containerPort, targetPort: port.containerPort, nodePort: port.port, protocol: port.protocol })) } };
+    const service: V1Service = { apiVersion: "v1", kind: "Service", metadata: { name: request.kubernetesName, namespace: request.namespace, labels }, spec: { type: process.env.GAME_SERVICE_TYPE ?? process.env.MINECRAFT_SERVICE_TYPE ?? "NodePort", selector: labels, ports: request.publicPorts.map((port) => ({ name: port.name, port: port.containerPort, targetPort: port.containerPort, nodePort: port.port, protocol: port.protocol })) } };
     const definition = request.definition;
     const statefulSet: V1StatefulSet = {
       apiVersion: "apps/v1", kind: "StatefulSet", metadata: { name: request.kubernetesName, namespace: request.namespace, labels },

@@ -4,7 +4,7 @@ export const permissions = [
   "server.view", "server.create", "server.start", "server.stop", "server.restart", "server.delete",
   "server.console.read", "server.console.write", "server.files.read", "server.files.write",
   "backup.create", "backup.restore", "backup.delete", "node.view", "node.manage",
-  "template.manage", "database.view", "database.manage", "user.manage", "settings.manage",
+  "template.manage", "database.view", "database.manage", "stack.view", "stack.manage", "stack.lifecycle", "user.manage", "settings.manage",
 ] as const;
 export type Permission = (typeof permissions)[number];
 export type Role = "SUPER_ADMIN" | "ADMIN" | "USER" | "VIEWER";
@@ -12,8 +12,8 @@ export type Role = "SUPER_ADMIN" | "ADMIN" | "USER" | "VIEWER";
 const rolePermissions: Record<Role, ReadonlySet<Permission>> = {
   SUPER_ADMIN: new Set(permissions),
   ADMIN: new Set(permissions.filter((permission) => permission !== "settings.manage")),
-  USER: new Set(["server.view", "server.create", "server.start", "server.stop", "server.restart", "server.console.read", "server.console.write", "server.files.read", "server.files.write", "backup.create"]),
-  VIEWER: new Set(["server.view", "server.console.read", "node.view", "database.view"]),
+  USER: new Set(["server.view", "server.create", "server.start", "server.stop", "server.restart", "server.console.read", "server.console.write", "server.files.read", "server.files.write", "backup.create", "stack.view", "stack.manage", "stack.lifecycle"]),
+  VIEWER: new Set(["server.view", "server.console.read", "node.view", "database.view", "stack.view"]),
 };
 
 export function hasPermission(role: Role, permission: Permission): boolean {

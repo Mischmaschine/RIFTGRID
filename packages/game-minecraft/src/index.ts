@@ -100,4 +100,7 @@ export class MinecraftAdapter implements GameAdapter {
 
   gracefulStopCommand() { return ["rcon-cli", "stop"]; }
   consoleCommand(command: string) { return ["rcon-cli", command]; }
+  orchestrationCapabilities() { return { playerAware: true, supportsGracefulShutdown: true, supportsLiveQuery: true, supportsRcon: true, supportsInstanceGroups: true, supportsProxyRegistration: false, supportsResourceManagement: false, supportsWorldSave: true }; }
+  populationQuery() { return { command: ["rcon-cli", "list"], parse(output: string) { const match = output.match(/There are (\d+) of a max of (\d+) players online/i); return match?.[1] && match[2] ? { currentPlayers: Number(match[1]), maxPlayers: Number(match[2]), sampledAt: new Date().toISOString() } : null; } }; }
+  backupCommandPlan() { return { prepare: [["rcon-cli", "save-all", "flush"], ["rcon-cli", "save-off"]], finalize: [["rcon-cli", "save-on"]] }; }
 }

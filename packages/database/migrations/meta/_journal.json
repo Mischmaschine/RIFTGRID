@@ -6,6 +6,9 @@
     { "idx": 1, "version": "7", "when": 1786996800000, "tag": "0001_installer_identity", "breakpoints": true },
     { "idx": 2, "version": "7", "when": 1787004000000, "tag": "0002_platform_resources", "breakpoints": true },
     { "idx": 3, "version": "7", "when": 1787018400000, "tag": "0003_global_nodeports", "breakpoints": true },
-    { "idx": 4, "version": "7", "when": 1787025600000, "tag": "0004_template_revisions", "breakpoints": true }
+    { "idx": 4, "version": "7", "when": 1787025600000, "tag": "0004_template_revisions", "breakpoints": true },
+    { "idx": 5, "version": "7", "when": 1787040000000, "tag": "0005_protocol_nodeports", "breakpoints": true },
+    { "idx": 6, "version": "7", "when": 1787126400000, "tag": "0006_node_enrollments", "breakpoints": true },
+    { "idx": 7, "version": "7", "when": 1787212800000, "tag": "0007_stack_orchestration", "breakpoints": true }
   ]
 }
