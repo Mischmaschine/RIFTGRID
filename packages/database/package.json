@@ -12,5 +12,5 @@
     "migrate": "tsx src/migrate.ts"
   },
   "dependencies": { "drizzle-orm": "^0.43.1", "postgres": "^3.4.5" },
-  "devDependencies": { "drizzle-kit": "^0.31.0", "tsx": "^4.19.3", "typescript": "^5.8.3", "vitest": "^3.1.1" }
+  "devDependencies": { "drizzle-kit": "^0.31.0", "tsx": "^4.19.3", "typescript": "^5.8.3", "vitest": "^4.1.11" }
 }
