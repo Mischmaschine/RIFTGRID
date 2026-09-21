@@ -4,6 +4,6 @@
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run --passWithNoTests", "lint": "tsc -p tsconfig.json --noEmit" },
-  "dependencies": { "@riftgrid/shared": "workspace:*", "zod": "^3.24.3" },
-  "devDependencies": { "typescript": "^5.8.3", "vitest": "^3.1.1" }
+  "dependencies": { "@riftgrid/shared": "workspace:*", "zod": "^4.6.5" },
+  "devDependencies": { "typescript": "^7.0.2", "vitest": "^5.0.1" }
 }
