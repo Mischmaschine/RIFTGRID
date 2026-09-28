@@ -5,5 +5,5 @@
   "exports": { ".": "./src/index.ts" },
   "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run", "lint": "tsc -p tsconfig.json --noEmit" },
   "dependencies": { "@riftgrid/shared": "workspace:*" },
-  "devDependencies": { "typescript": "^5.8.3", "vitest": "^3.1.1" }
+  "devDependencies": { "typescript": "^7.0.2", "vitest": "^5.0.2" }
 }
