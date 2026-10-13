@@ -9,6 +9,6 @@
     "test": "vitest run",
     "lint": "tsc -p tsconfig.json --noEmit"
   },
-  "dependencies": { "zod": "^3.24.3" },
-  "devDependencies": { "@types/node": "^22.15.0", "typescript": "^5.8.3", "vitest": "^3.1.1" }
+  "dependencies": { "zod": "^4.6.5" },
+  "devDependencies": { "@types/node": "^26.6.5", "typescript": "^7.0.2", "vitest": "^5.0.3" }
 }
