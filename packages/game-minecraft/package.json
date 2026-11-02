@@ -4,6 +4,6 @@
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run", "lint": "tsc -p tsconfig.json --noEmit" },
-  "dependencies": { "@riftgrid/game-sdk": "workspace:*", "@riftgrid/shared": "workspace:*", "zod": "^3.24.3" },
+  "dependencies": { "@riftgrid/game-sdk": "workspace:*", "@riftgrid/shared": "workspace:*", "zod": "^4.6.6" },
   "devDependencies": { "typescript": "^5.8.3", "vitest": "^3.1.1" }
 }
